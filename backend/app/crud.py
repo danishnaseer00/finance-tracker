@@ -2,6 +2,7 @@ from sqlalchemy.orm import Session
 from .models import Account, Transaction, Category, Budget, User
 from .schemas import AccountCreate, TransactionCreate, CategoryCreate, UserCreate, BudgetCreate
 from . import auth
+from decimal import Decimal
 
 # Users
 def create_user(db: Session, user: UserCreate):
@@ -146,10 +147,13 @@ def create_transaction(db: Session, transaction: TransactionCreate, user_id: int
     # Update account balance
     account = db.query(Account).filter(Account.account_id == transaction.account_id, Account.user_id == user_id).first()
     if account:
+        # Convert amount to Decimal to match balance type
+        amount_decimal = Decimal(str(transaction.amount))
+        
         if transaction.transaction_type == "income":
-            account.balance += transaction.amount
+            account.balance += amount_decimal
         else:
-            account.balance -= transaction.amount
+            account.balance -= amount_decimal
     
     db.commit()
     db.refresh(new_transaction)
@@ -164,10 +168,13 @@ def update_transaction(db: Session, transaction_id: int, transaction: Transactio
         # Reverse old transaction balance impact
         account = db.query(Account).filter(Account.account_id == db_transaction.account_id, Account.user_id == user_id).first()
         if account:
+            # Convert to Decimal
+            old_amount = Decimal(str(db_transaction.amount))
+            
             if db_transaction.transaction_type == "income":
-                account.balance -= db_transaction.amount
+                account.balance -= old_amount
             else:
-                account.balance += db_transaction.amount
+                account.balance += old_amount
         
         # Update transaction
         db_transaction.account_id = transaction.account_id
@@ -182,10 +189,13 @@ def update_transaction(db: Session, transaction_id: int, transaction: Transactio
         # Apply new transaction balance impact
         new_account = db.query(Account).filter(Account.account_id == transaction.account_id, Account.user_id == user_id).first()
         if new_account:
+            # Convert to Decimal
+            new_amount = Decimal(str(transaction.amount))
+            
             if transaction.transaction_type == "income":
-                new_account.balance += transaction.amount
+                new_account.balance += new_amount
             else:
-                new_account.balance -= transaction.amount
+                new_account.balance -= new_amount
         
         db.commit()
         db.refresh(db_transaction)
@@ -198,10 +208,13 @@ def delete_transaction(db: Session, transaction_id: int, user_id: int):
         # Reverse transaction balance impact
         account = db.query(Account).filter(Account.account_id == db_transaction.account_id, Account.user_id == user_id).first()
         if account:
+            # Convert to Decimal
+            amount_decimal = Decimal(str(db_transaction.amount))
+            
             if db_transaction.transaction_type == "income":
-                account.balance -= db_transaction.amount
+                account.balance -= amount_decimal
             else:
-                account.balance += db_transaction.amount
+                account.balance += amount_decimal
         
         db.delete(db_transaction)
         db.commit()

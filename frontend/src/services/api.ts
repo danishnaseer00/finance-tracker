@@ -117,3 +117,27 @@ export const budgetAPI = {
 };
 
 export default api;
+
+// Settings API calls
+export const settingsAPI = {
+  changePassword: (oldPassword: string, newPassword: string) =>
+    api.put('/users/me/password', null, {
+      params: {
+        old_password: oldPassword,
+        new_password: newPassword
+      }
+    }),
+
+  updateProfile: (data: {
+    first_name?: string;
+    last_name?: string;
+    email?: string;
+  }) => api.put('/users/me/profile', null, { params: data }),
+
+  deleteAccount: (password: string) =>
+    api.delete('/users/me', {
+      params: { password }
+    }),
+
+  exportData: () => api.get('/users/me/export'),
+};

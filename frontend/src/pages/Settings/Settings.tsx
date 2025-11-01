@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import styled from 'styled-components';
 import { FaUser, FaLock, FaPalette, FaBell, FaShieldAlt, FaDownload } from 'react-icons/fa';
 import { useAuth } from '../../context/AuthContext';
+import { settingsAPI } from '../../services/api';
+import { useNavigate } from 'react-router-dom';
 
 const SettingsContainer = styled.div`
   padding: 2rem;
@@ -93,48 +95,19 @@ const SettingLabel = styled.label`
   font-size: ${(props) => props.theme.fontSize.md};
 `;
 
-const ToggleSwitch = styled.label`
-  position: relative;
-  display: inline-block;
-  width: 50px;
-  height: 26px;
-  
-  input {
-    opacity: 0;
-    width: 0;
-    height: 0;
-  }
-  
-  span {
-    position: absolute;
-    cursor: pointer;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: ${(props) => props.theme.colors.border};
-    transition: 0.4s;
-    border-radius: 34px;
-    
-    &:before {
-      position: absolute;
-      content: "";
-      height: 18px;
-      width: 18px;
-      left: 4px;
-      bottom: 4px;
-      background-color: white;
-      transition: 0.4s;
-      border-radius: 50%;
-    }
-  }
-  
-  input:checked + span {
-    background-color: ${(props) => props.theme.colors.primary};
-  }
-  
-  input:checked + span:before {
-    transform: translateX(24px);
+const Input = styled.input`
+  padding: 0.75rem;
+  background: ${(props) => props.theme.colors.background};
+  border: 1px solid ${(props) => props.theme.colors.border};
+  border-radius: ${(props) => props.theme.borderRadius.md};
+  color: ${(props) => props.theme.colors.textPrimary};
+  font-size: ${(props) => props.theme.fontSize.md};
+  width: 100%;
+  margin-top: 0.5rem;
+
+  &:focus {
+    outline: none;
+    border-color: ${(props) => props.theme.colors.primary};
   }
 `;
 
@@ -153,6 +126,23 @@ const Button = styled.button`
     background: ${(props) => props.theme.colors.primaryDark};
     transform: translateY(-2px);
   }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+`;
+
+const DangerButton = styled(Button)`
+  background: #ef4444;
+  
+  &:hover {
+    background: #dc2626;
+  }
+`;
+
+const FormGroup = styled.div`
+  margin-bottom: 1rem;
 `;
 
 const InfoText = styled.div`
@@ -161,11 +151,100 @@ const InfoText = styled.div`
   margin-top: 0.5rem;
 `;
 
+const SuccessMessage = styled.div`
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid #10b981;
+  color: #10b981;
+  padding: 0.75rem;
+  border-radius: ${(props) => props.theme.borderRadius.md};
+  margin-bottom: 1rem;
+`;
+
+const ErrorMessage = styled.div`
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid #ef4444;
+  color: #ef4444;
+  padding: 0.75rem;
+  border-radius: ${(props) => props.theme.borderRadius.md};
+  margin-bottom: 1rem;
+`;
+
 const Settings: React.FC = () => {
-  const { state } = useAuth();
-  const [notifications, setNotifications] = useState(true);
-  const [emailAlerts, setEmailAlerts] = useState(false);
-  const [darkMode, setDarkMode] = useState(true);
+  const { state, logout } = useAuth();
+  const navigate = useNavigate();
+
+  const [oldPassword, setOldPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordMessage, setPasswordMessage] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+
+  const [deletePassword, setDeletePassword] = useState('');
+  const [deleteError, setDeleteError] = useState('');
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPasswordMessage('');
+    setPasswordError('');
+
+    if (newPassword !== confirmPassword) {
+      setPasswordError('New passwords do not match');
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      setPasswordError('Password must be at least 6 characters');
+      return;
+    }
+
+    try {
+      await settingsAPI.changePassword(oldPassword, newPassword);
+      setPasswordMessage('Password changed successfully!');
+      setOldPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch (error: any) {
+      setPasswordError(error.response?.data?.detail || 'Failed to change password');
+    }
+  };
+
+  const handleExportData = async () => {
+    try {
+      const response = await settingsAPI.exportData();
+      const dataStr = JSON.stringify(response.data, null, 2);
+      const dataBlob = new Blob([dataStr], { type: 'application/json' });
+      const url = URL.createObjectURL(dataBlob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `finance-tracker-data-${new Date().toISOString().split('T')[0]}.json`;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      alert('Failed to export data');
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!deletePassword) {
+      setDeleteError('Please enter your password to confirm deletion');
+      return;
+    }
+
+    const confirmed = window.confirm(
+      'Are you absolutely sure you want to delete your account? This action cannot be undone and all your data will be permanently deleted.'
+    );
+
+    if (!confirmed) return;
+
+    try {
+      await settingsAPI.deleteAccount(deletePassword);
+      alert('Account deleted successfully');
+      logout();
+      navigate('/login');
+    } catch (error: any) {
+      setDeleteError(error.response?.data?.detail || 'Failed to delete account');
+    }
+  };
 
   return (
     <SettingsContainer>
@@ -214,54 +293,45 @@ const Settings: React.FC = () => {
             <SettingIcon>
               <FaLock />
             </SettingIcon>
-            <SettingTitle>Security</SettingTitle>
+            <SettingTitle>Change Password</SettingTitle>
           </SettingHeader>
           <SettingDescription>
-            Manage your password and security preferences
+            Update your password to keep your account secure
           </SettingDescription>
-          <SettingRow>
-            <SettingLabel>Change Password</SettingLabel>
-            <Button>Update</Button>
-          </SettingRow>
-          <SettingRow>
-            <SettingLabel>Two-Factor Authentication</SettingLabel>
-            <Button>Enable</Button>
-          </SettingRow>
-        </SettingCard>
 
-        {/* Notifications */}
-        <SettingCard>
-          <SettingHeader>
-            <SettingIcon>
-              <FaBell />
-            </SettingIcon>
-            <SettingTitle>Notifications</SettingTitle>
-          </SettingHeader>
-          <SettingDescription>
-            Control how you receive notifications
-          </SettingDescription>
-          <SettingRow>
-            <SettingLabel>Push Notifications</SettingLabel>
-            <ToggleSwitch>
-              <input
-                type="checkbox"
-                checked={notifications}
-                onChange={(e) => setNotifications(e.target.checked)}
+          {passwordMessage && <SuccessMessage>{passwordMessage}</SuccessMessage>}
+          {passwordError && <ErrorMessage>{passwordError}</ErrorMessage>}
+
+          <form onSubmit={handleChangePassword}>
+            <FormGroup>
+              <SettingLabel>Current Password</SettingLabel>
+              <Input
+                type="password"
+                value={oldPassword}
+                onChange={(e) => setOldPassword(e.target.value)}
+                required
               />
-              <span></span>
-            </ToggleSwitch>
-          </SettingRow>
-          <SettingRow>
-            <SettingLabel>Email Alerts</SettingLabel>
-            <ToggleSwitch>
-              <input
-                type="checkbox"
-                checked={emailAlerts}
-                onChange={(e) => setEmailAlerts(e.target.checked)}
+            </FormGroup>
+            <FormGroup>
+              <SettingLabel>New Password</SettingLabel>
+              <Input
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                required
               />
-              <span></span>
-            </ToggleSwitch>
-          </SettingRow>
+            </FormGroup>
+            <FormGroup>
+              <SettingLabel>Confirm New Password</SettingLabel>
+              <Input
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+              />
+            </FormGroup>
+            <Button type="submit">Update Password</Button>
+          </form>
         </SettingCard>
 
         {/* Appearance */}
@@ -276,15 +346,8 @@ const Settings: React.FC = () => {
             Customize how Finance Tracker looks
           </SettingDescription>
           <SettingRow>
-            <SettingLabel>Dark Mode</SettingLabel>
-            <ToggleSwitch>
-              <input
-                type="checkbox"
-                checked={darkMode}
-                onChange={(e) => setDarkMode(e.target.checked)}
-              />
-              <span></span>
-            </ToggleSwitch>
+            <SettingLabel>Theme</SettingLabel>
+            <InfoText>Dark Mode (Active)</InfoText>
           </SettingRow>
           <SettingRow>
             <SettingLabel>Currency</SettingLabel>
@@ -305,15 +368,42 @@ const Settings: React.FC = () => {
           </SettingDescription>
           <SettingRow>
             <SettingLabel>Export Data</SettingLabel>
-            <Button>
+            <Button onClick={handleExportData}>
               <FaDownload style={{ marginRight: '0.5rem' }} />
               Export
             </Button>
           </SettingRow>
-          <SettingRow>
-            <SettingLabel>Delete Account</SettingLabel>
-            <Button style={{ background: '#ef4444' }}>Delete</Button>
-          </SettingRow>
+        </SettingCard>
+
+        {/* Delete Account */}
+        <SettingCard>
+          <SettingHeader>
+            <SettingIcon style={{ color: '#ef4444' }}>
+              <FaShieldAlt />
+            </SettingIcon>
+            <SettingTitle style={{ color: '#ef4444' }}>Danger Zone</SettingTitle>
+          </SettingHeader>
+          <SettingDescription>
+            Permanently delete your account and all associated data
+          </SettingDescription>
+
+          {deleteError && <ErrorMessage>{deleteError}</ErrorMessage>}
+
+          <FormGroup>
+            <SettingLabel>Enter your password to confirm deletion</SettingLabel>
+            <Input
+              type="password"
+              value={deletePassword}
+              onChange={(e) => setDeletePassword(e.target.value)}
+              placeholder="Enter password"
+            />
+            <InfoText>
+              Warning: This action cannot be undone. All your data will be permanently deleted.
+            </InfoText>
+          </FormGroup>
+          <DangerButton onClick={handleDeleteAccount}>
+            Delete Account
+          </DangerButton>
         </SettingCard>
       </SettingsGrid>
     </SettingsContainer>

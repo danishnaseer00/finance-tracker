@@ -183,6 +183,170 @@ def create_budget(budget: BudgetCreate, current_user: User = Depends(get_current
     new_budget = crud.create_budget(db, budget, current_user.user_id)
     return new_budget
 
+# Add this debug endpoint (around line 190)
+@app.get("/debug/user-data")
+def get_user_debug_data(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Debug endpoint to check user's data"""
+    accounts = crud.get_accounts(db, current_user.user_id)
+    categories = crud.get_categories(db, current_user.user_id)
+    transactions = crud.get_transactions(db, current_user.user_id)
+    
+    return {
+        "user_id": current_user.user_id,
+        "username": current_user.username,
+        "accounts_count": len(accounts),
+        "categories_count": len(categories),
+        "transactions_count": len(transactions),
+        "categories": [
+            {
+                "id": cat.category_id,
+                "name": cat.category_name,
+                "type": cat.category_type,
+                "icon": cat.icon
+            } for cat in categories
+        ]
+    }
+# Settings & User Management Routes
+@app.put("/users/me/password")
+def change_password(
+    old_password: str,
+    new_password: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Change user password"""
+    from .auth import verify_password, get_password_hash
+    
+    # Verify old password
+    if not verify_password(old_password, current_user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Incorrect current password"
+        )
+    
+    # Update password
+    current_user.hashed_password = get_password_hash(new_password)
+    db.commit()
+    
+    return {"message": "Password updated successfully"}
+
+@app.put("/users/me/profile")
+def update_profile(
+    first_name: str = None,
+    last_name: str = None,
+    email: str = None,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Update user profile"""
+    if first_name:
+        current_user.first_name = first_name
+    if last_name:
+        current_user.last_name = last_name
+    if email:
+        # Check if email already exists
+        existing_user = crud.get_user_by_email(db, email)
+        if existing_user and existing_user.user_id != current_user.user_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email already in use"
+            )
+        current_user.email = email
+    
+    db.commit()
+    db.refresh(current_user)
+    
+    return {
+        "message": "Profile updated successfully",
+        "user": {
+            "user_id": current_user.user_id,
+            "username": current_user.username,
+            "email": current_user.email,
+            "first_name": current_user.first_name,
+            "last_name": current_user.last_name
+        }
+    }
+
+@app.delete("/users/me")
+def delete_account(
+    password: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Delete user account"""
+    from .auth import verify_password
+    
+    # Verify password before deletion
+    if not verify_password(password, current_user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Incorrect password"
+        )
+    
+    # Delete user (cascade will delete all related data)
+    db.delete(current_user)
+    db.commit()
+    
+    return {"message": "Account deleted successfully"}
+
+@app.get("/users/me/export")
+def export_user_data(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Export all user data as JSON"""
+    accounts = crud.get_accounts(db, current_user.user_id)
+    transactions = crud.get_transactions(db, current_user.user_id)
+    categories = crud.get_categories(db, current_user.user_id)
+    budgets = crud.get_budgets(db, current_user.user_id)
+    
+    return {
+        "user": {
+            "username": current_user.username,
+            "email": current_user.email,
+            "first_name": current_user.first_name,
+            "last_name": current_user.last_name,
+            "created_at": str(current_user.created_at)
+        },
+        "accounts": [
+            {
+                "account_id": acc.account_id,
+                "account_name": acc.account_name,
+                "account_type": acc.account_type,
+                "balance": float(acc.balance),
+                "currency": acc.currency
+            } for acc in accounts
+        ],
+        "transactions": [
+            {
+                "transaction_id": trans.transaction_id,
+                "description": trans.description,
+                "amount": float(trans.amount),
+                "transaction_type": trans.transaction_type,
+                "transaction_date": str(trans.transaction_date),
+                "payment_method": trans.payment_method,
+                "notes": trans.notes
+            } for trans in transactions
+        ],
+        "categories": [
+            {
+                "category_id": cat.category_id,
+                "category_name": cat.category_name,
+                "category_type": cat.category_type,
+                "icon": cat.icon,
+                "color": cat.color
+            } for cat in categories
+        ],
+        "budgets": [
+            {
+                "budget_id": bud.budget_id,
+                "budget_amount": float(bud.budget_amount),
+                "month": bud.month,
+                "year": bud.year
+            } for bud in budgets
+        ]
+    }
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
