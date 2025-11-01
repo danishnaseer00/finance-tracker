@@ -7,6 +7,7 @@ import Dashboard from '../pages/Dashboard';
 import Transactions from '../pages/transactions/Transactions';
 import Accounts from '../pages/accounts/Accounts';
 import PrivateRoute from './PrivateRoute';
+import Settings from '../pages/Settings/Settings';
 
 const AppRoutes: React.FC = () => {
   const { state } = useAuth();
@@ -32,6 +33,15 @@ const AppRoutes: React.FC = () => {
           </PrivateRoute>
         } 
       />
+      <Route 
+      path="/settings" 
+      element={
+        <PrivateRoute>
+          <Settings />
+        </PrivateRoute>
+      } 
+    />
+      
       <Route 
         path="/accounts" 
         element={

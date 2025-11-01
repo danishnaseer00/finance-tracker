@@ -8,12 +8,20 @@ import PieChartComponent from '../components/charts/PieChartComponent';
 import LineChartComponent from '../components/charts/LineChartComponent';
 import { transactionAPI } from '../services/api';
 
-// Placeholder components - we'll implement these later
+const DashboardContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-color: ${(props) => props.theme.colors.background};
+  width: 100%;
+`;
+
 const PageHeader = styled.header`
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 1.5rem 2rem;
+  padding-left: 5.5rem;
   background: ${(props) => props.theme.colors.surface};
   border-bottom: 1px solid ${(props) => props.theme.colors.border};
   
@@ -21,6 +29,7 @@ const PageHeader = styled.header`
     flex-direction: column;
     gap: 1rem;
     align-items: flex-start;
+    padding-left: 5.5rem;
   }
 `;
 
@@ -53,16 +62,15 @@ const UserAvatar = styled.div`
   text-transform: uppercase;
 `;
 
-const MainContent = styled.main`
-  padding: 2rem;
+const SummarySection = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 1.5rem;
-  flex: 1;
+  padding: 2rem;
   
-  @media (max-width: ${(props) => props.theme.breakpoints.lg}) {
+  @media (max-width: ${(props) => props.theme.breakpoints.md}) {
     grid-template-columns: 1fr;
-    grid-template-rows: auto;
+    padding: 1rem;
   }
 `;
 
@@ -99,26 +107,16 @@ const CardSubtitle = styled.div`
   font-size: ${(props) => props.theme.fontSize.sm};
 `;
 
-const DashboardContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  min-height: 100vh;
-  background-color: ${(props) => props.theme.colors.background};
-  margin-left: 70px; /* Account for sidebar */
-  
-  @media (max-width: ${(props) => props.theme.breakpoints.md}) {
-    margin-left: 0;
-  }
-`;
-
-const SummarySection = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 1.5rem;
+const MainContent = styled.main`
   padding: 0 2rem 2rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  gap: 1.5rem;
+  flex: 1;
   
-  @media (max-width: ${(props) => props.theme.breakpoints.md}) {
+  @media (max-width: ${(props) => props.theme.breakpoints.lg}) {
     grid-template-columns: 1fr;
+    padding: 0 1rem 1rem;
   }
 `;
 
@@ -171,40 +169,37 @@ const Dashboard: React.FC = () => {
 
   const fetchDashboardData = async () => {
     try {
-      // Fetch transactions
       const transactionsResponse = await transactionAPI.getTransactions();
       const transactions = transactionsResponse.data;
       
-      // Calculate summary data
       const totalBalance = transactions
         .filter((t: any) => t.transaction_type === 'income')
-        .reduce((sum: number, t: any) => sum + t.amount, 0) 
+        .reduce((sum: number, t: any) => sum + parseFloat(t.amount), 0) 
         - transactions
           .filter((t: any) => t.transaction_type === 'expense')
-          .reduce((sum: number, t: any) => sum + t.amount, 0);
+          .reduce((sum: number, t: any) => sum + parseFloat(t.amount), 0);
       
       const totalIncome = transactions
         .filter((t: any) => t.transaction_type === 'income')
-        .reduce((sum: number, t: any) => sum + t.amount, 0);
+        .reduce((sum: number, t: any) => sum + parseFloat(t.amount), 0);
       
       const totalExpense = transactions
         .filter((t: any) => t.transaction_type === 'expense')
-        .reduce((sum: number, t: any) => sum + t.amount, 0);
+        .reduce((sum: number, t: any) => sum + parseFloat(t.amount), 0);
 
       setDashboardData({
         totalBalance,
         totalIncome,
         totalExpense,
-        recentTransactions: transactions.slice(0, 5), // Get last 5 transactions
+        recentTransactions: transactions.slice(0, 5),
       });
 
-      // Group expenses by category
       const categoryMap: Record<string, number> = {};
       transactions
         .filter((t: any) => t.transaction_type === 'expense')
         .forEach((t: any) => {
           const category = t.category?.category_name || 'Uncategorized';
-          categoryMap[category] = (categoryMap[category] || 0) + t.amount;
+          categoryMap[category] = (categoryMap[category] || 0) + parseFloat(t.amount);
         });
 
       const expensesData = Object.entries(categoryMap).map(([name, value]) => ({
@@ -214,7 +209,6 @@ const Dashboard: React.FC = () => {
 
       setExpensesByCategory(expensesData);
 
-      // Generate mock monthly trends (in a real app, this would come from the API)
       const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
       const trends = months.map((name) => ({
         name,
@@ -222,7 +216,6 @@ const Dashboard: React.FC = () => {
         expenses: 2000 + Math.random() * 400,
       }));
 
-      // Calculate balance based on income and expenses
       const trendsWithBalance = trends.map(trend => ({
         ...trend,
         balance: trend.income - trend.expenses,
@@ -292,30 +285,25 @@ const Dashboard: React.FC = () => {
       </SummarySection>
 
       <MainContent>
-        <Card style={{ gridRow: 'span 2' }}>
-          <CardHeader>
-            <CardTitle>Expenses by Category</CardTitle>
-          </CardHeader>
-          <PieChartComponent 
-            data={expensesByCategory} 
-            title="Expense Distribution" 
-          />
-        </Card>
+        {expensesByCategory.length > 0 && (
+          <Card>
+            <PieChartComponent 
+              data={expensesByCategory} 
+              title="Expenses by Category" 
+            />
+          </Card>
+        )}
 
-        <Card style={{ gridRow: 'span 2' }}>
-          <CardHeader>
-            <CardTitle>Income vs Expenses</CardTitle>
-          </CardHeader>
-          <BarChartComponent 
-            data={expensesByCategory} 
-            title="Monthly Expenses by Category" 
-          />
-        </Card>
+        {expensesByCategory.length > 0 && (
+          <Card>
+            <BarChartComponent 
+              data={expensesByCategory} 
+              title="Monthly Expenses by Category" 
+            />
+          </Card>
+        )}
 
-        <Card style={{ gridRow: 'span 2' }}>
-          <CardHeader>
-            <CardTitle>Financial Trends</CardTitle>
-          </CardHeader>
+        <Card>
           <LineChartComponent 
             data={monthlyTrends} 
             title="Income, Expenses & Balance Trend" 
@@ -326,38 +314,29 @@ const Dashboard: React.FC = () => {
           <CardHeader>
             <CardTitle>Recent Transactions</CardTitle>
             <Link to="/transactions">
-              <FaPlus style={{ color: 'var(--primary-color)' }} />
+              <FaPlus style={{ color: '#3b82f6' }} />
             </Link>
           </CardHeader>
           <div>
-            {dashboardData.recentTransactions.map((transaction: any) => (
-              <div key={transaction.id} style={{ padding: '0.75rem 0', borderBottom: '1px solid var(--border-color)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>{transaction.description}</span>
-                  <span style={{ color: transaction.transaction_type === 'income' ? '#10b981' : '#ef4444' }}>
-                    {transaction.transaction_type === 'income' ? '+' : '-'}${transaction.amount.toFixed(2)}
-                  </span>
+            {dashboardData.recentTransactions.length > 0 ? (
+              dashboardData.recentTransactions.map((transaction: any) => (
+                <div key={transaction.transaction_id} style={{ padding: '0.75rem 0', borderBottom: '1px solid #334155' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span>{transaction.description}</span>
+                    <span style={{ color: transaction.transaction_type === 'income' ? '#10b981' : '#ef4444' }}>
+                      {transaction.transaction_type === 'income' ? '+' : '-'}${parseFloat(transaction.amount).toFixed(2)}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '0.25rem' }}>
+                    {transaction.transaction_date}
+                  </div>
                 </div>
-                <div style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)', marginTop: '0.25rem' }}>
-                  {transaction.transaction_date}
-                </div>
-              </div>
-            ))}
-          </div>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Accounts</CardTitle>
-            <Link to="/accounts">
-              <FaCreditCard style={{ color: 'var(--primary-color)' }} />
-            </Link>
-          </CardHeader>
-          <div>
-            {/* Account list will be populated via API in the Accounts component */}
-            <p style={{ textAlign: 'center', color: 'var(--text-tertiary)', padding: '1rem' }}>
-              View and manage your accounts
-            </p>
+              ))
+            ) : (
+              <p style={{ textAlign: 'center', color: '#94a3b8', padding: '1rem' }}>
+                No transactions yet
+              </p>
+            )}
           </div>
         </Card>
       </MainContent>

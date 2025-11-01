@@ -8,19 +8,19 @@ import { darkTheme } from '../../themes/GlobalStyle';
 const SidebarContainer = styled.div<{ $isOpen: boolean }>`
   position: fixed;
   top: 0;
-  left: 0;
+  left: ${(props) => (props.$isOpen ? '0' : '-250px')};
   height: 100vh;
-  width: ${(props) => (props.$isOpen ? '250px' : '70px')};
+  width: 250px;
   background: ${(props) => props.theme.colors.surface};
   border-right: 1px solid ${(props) => props.theme.colors.border};
-  transition: width 0.3s ease;
-  z-index: 999;
+  transition: left 0.3s ease;
+  z-index: 1000;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 
   @media (max-width: ${(props) => props.theme.breakpoints.md}) {
-    width: ${(props) => (props.$isOpen ? '250px' : '0')};
-    overflow-x: hidden;
+    left: ${(props) => (props.$isOpen ? '0' : '-250px')};
   }
 `;
 
@@ -30,6 +30,7 @@ const TopSection = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
+  min-height: 70px;
 `;
 
 const Logo = styled.div<{ $isOpen: boolean }>`
@@ -37,37 +38,65 @@ const Logo = styled.div<{ $isOpen: boolean }>`
   align-items: center;
   gap: 0.75rem;
   color: ${(props) => props.theme.colors.textPrimary};
+  overflow: hidden;
+  
+  svg {
+    min-width: 24px;
+    flex-shrink: 0;
+  }
   
   h1 {
     font-size: ${(props) => props.theme.fontSize.lg};
     font-weight: 700;
-    white-space: ${(props) => (props.$isOpen ? 'nowrap' : 'nowrap')};
-    overflow: hidden;
-    text-overflow: ellipsis;
+    white-space: nowrap;
     opacity: ${(props) => (props.$isOpen ? 1 : 0)};
-    width: ${(props) => (props.$isOpen ? 'auto' : '0')};
-    transition: opacity 0.3s ease, width 0.3s ease;
+    transition: opacity 0.3s ease;
+    display: ${(props) => (props.$isOpen ? 'block' : 'none')};
   }
 `;
 
-const ToggleButton = styled.button`
-  background: none;
-  border: none;
-  color: ${(props) => props.theme.colors.textPrimary};
+const ToggleButton = styled.button<{ $isOpen: boolean }>`
+  position: fixed;
+  top: 1.25rem;
+  left: ${(props) => (props.$isOpen ? '260px' : '1rem')};
+  background: ${(props) => props.theme.colors.primary};
+  border: 1px solid ${(props) => props.theme.colors.border};
+  color: white;
   font-size: ${(props) => props.theme.fontSize.lg};
   cursor: pointer;
+  padding: 0.75rem;
+  width: 45px;
+  height: 45px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: ${(props) => props.theme.borderRadius.md};
+  z-index: 1001;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+
+  &:hover {
+    background: ${(props) => props.theme.colors.primaryDark};
+    transform: scale(1.05);
+    box-shadow: 0 6px 16px rgba(59, 130, 246, 0.5);
+  }
+
+  &:active {
+    transform: scale(0.95);
+  }
   
   @media (max-width: ${(props) => props.theme.breakpoints.md}) {
-    display: block;
+    left: 1rem;
   }
 `;
 
 const NavMenu = styled.nav`
   flex: 1;
   padding: 1.5rem 0;
+  overflow-y: auto;
 `;
 
-const NavItem = styled(Link)<{ $isActive: boolean }>`
+const NavItem = styled(Link)<{ $isActive: boolean; $isOpen?: boolean }>`
   display: flex;
   align-items: center;
   gap: 0.75rem;
@@ -81,6 +110,18 @@ const NavItem = styled(Link)<{ $isActive: boolean }>`
   transition: all 0.2s ease;
   margin: 0.25rem 0.75rem;
   border-radius: ${(props) => props.theme.borderRadius.md};
+  white-space: nowrap;
+  
+  svg {
+    min-width: 20px;
+    flex-shrink: 0;
+  }
+  
+  span {
+    opacity: ${(props) => (props.$isOpen ? 1 : 0)};
+    transition: opacity 0.3s ease;
+    display: ${(props) => (props.$isOpen ? 'inline' : 'none')};
+  }
   
   &:hover {
     background: ${(props) => props.theme.colors.background};
@@ -98,7 +139,7 @@ const BottomSection = styled.div`
   border-top: 1px solid ${(props) => props.theme.colors.border};
 `;
 
-const UserSection = styled.div`
+const UserSection = styled.div<{ $isOpen: boolean }>`
   display: flex;
   align-items: center;
   gap: 0.75rem;
@@ -106,9 +147,11 @@ const UserSection = styled.div`
   border-radius: ${(props) => props.theme.borderRadius.md};
   background: ${(props) => props.theme.colors.background};
   margin-bottom: 1rem;
+  overflow: hidden;
 `;
 
 const UserAvatar = styled.div`
+  min-width: 40px;
   width: 40px;
   height: 40px;
   border-radius: 50%;
@@ -119,16 +162,18 @@ const UserAvatar = styled.div`
   color: white;
   font-weight: bold;
   font-size: ${(props) => props.theme.fontSize.sm};
+  flex-shrink: 0;
 `;
 
 const UserInfo = styled.div<{ $isOpen: boolean }>`
   overflow: hidden;
+  flex: 1;
   
   div:first-child {
     font-weight: 600;
     color: ${(props) => props.theme.colors.textPrimary};
     font-size: ${(props) => props.theme.fontSize.sm};
-    white-space: ${(props) => (props.$isOpen ? 'nowrap' : 'nowrap')};
+    white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
@@ -136,14 +181,29 @@ const UserInfo = styled.div<{ $isOpen: boolean }>`
   div:last-child {
     font-size: ${(props) => props.theme.fontSize.xs};
     color: ${(props) => props.theme.colors.textTertiary};
-    white-space: ${(props) => (props.$isOpen ? 'nowrap' : 'nowrap')};
+    white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
   
   opacity: ${(props) => (props.$isOpen ? 1 : 0)};
-  width: ${(props) => (props.$isOpen ? 'auto' : '0')};
-  transition: opacity 0.3s ease, width 0.3s ease;
+  display: ${(props) => (props.$isOpen ? 'block' : 'none')};
+  transition: opacity 0.3s ease;
+`;
+
+const MobileOverlay = styled.div<{ $isOpen: boolean }>`
+  display: none;
+  
+  @media (max-width: ${(props) => props.theme.breakpoints.md}) {
+    display: ${(props) => (props.$isOpen ? 'block' : 'none')};
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 998;
+  }
 `;
 
 const Sidebar: React.FC = () => {
@@ -159,7 +219,6 @@ const Sidebar: React.FC = () => {
     ? `${state.user.first_name?.charAt(0) || ''}${state.user.last_name?.charAt(0) || ''}`.toUpperCase()
     : '?';
 
-  // For mobile, close sidebar when clicking on a menu item
   const handleMenuItemClick = () => {
     if (window.innerWidth < parseInt(darkTheme.breakpoints.md)) {
       setIsOpen(false);
@@ -168,6 +227,12 @@ const Sidebar: React.FC = () => {
 
   return (
     <>
+      <ToggleButton onClick={toggleSidebar} $isOpen={isOpen}>
+      {isOpen ? <FaTimes /> : <FaBars />}
+    </ToggleButton>
+
+      
+      <MobileOverlay $isOpen={isOpen} onClick={() => setIsOpen(false)} />
       <SidebarContainer $isOpen={isOpen}>
         <TopSection>
           <Logo $isOpen={isOpen}>
@@ -180,88 +245,75 @@ const Sidebar: React.FC = () => {
           <NavItem 
             to="/dashboard" 
             $isActive={location.pathname === '/dashboard'}
+            $isOpen={isOpen}
             onClick={handleMenuItemClick}
           >
             <FaChartLine />
-            {isOpen && <span>Dashboard</span>}
+            <span>Dashboard</span>
           </NavItem>
           <NavItem 
             to="/accounts" 
             $isActive={location.pathname === '/accounts'}
+            $isOpen={isOpen}
             onClick={handleMenuItemClick}
           >
             <FaWallet />
-            {isOpen && <span>Accounts</span>}
+            <span>Accounts</span>
           </NavItem>
           <NavItem 
             to="/transactions" 
             $isActive={location.pathname === '/transactions'}
+            $isOpen={isOpen}
             onClick={handleMenuItemClick}
           >
             <FaExchangeAlt />
-            {isOpen && <span>Transactions</span>}
+            <span>Transactions</span>
           </NavItem>
           <NavItem 
             to="/budgets" 
             $isActive={location.pathname === '/budgets'}
+            $isOpen={isOpen}
             onClick={handleMenuItemClick}
           >
             <FaList />
-            {isOpen && <span>Budgets</span>}
+            <span>Budgets</span>
           </NavItem>
           <NavItem 
             to="/settings" 
             $isActive={location.pathname === '/settings'}
+            $isOpen={isOpen}
             onClick={handleMenuItemClick}
           >
             <FaCog />
-            {isOpen && <span>Settings</span>}
+            <span>Settings</span>
           </NavItem>
         </NavMenu>
         
         <BottomSection>
-          <UserSection>
+          <UserSection $isOpen={isOpen}>
             <UserAvatar>{userInitials}</UserAvatar>
-            <UserInfo $isOpen={isOpen}>
-              <div>{state.user?.first_name || state.user?.username}</div>
-              <div>{state.user?.email}</div>
-            </UserInfo>
+            {isOpen && (
+              <UserInfo $isOpen={isOpen}>
+                <div>{state.user?.first_name || state.user?.username}</div>
+                <div>{state.user?.email}</div>
+              </UserInfo>
+            )}
           </UserSection>
           
           <NavItem 
             to="#" 
             $isActive={false}
+            $isOpen={isOpen}
             onClick={(e) => {
               e.preventDefault();
               logout();
             }}
           >
             <FaSignOutAlt />
-            {isOpen && <span>Logout</span>}
+            <span>Logout</span>
           </NavItem>
-
-          <ToggleButton onClick={toggleSidebar} style={{ display: 'block', margin: '0 auto' }}>
-            {isOpen ? <FaTimes /> : <FaBars />}
-          </ToggleButton>
         </BottomSection>
       </SidebarContainer>
-      
-      {/* Overlay for mobile */}
-      {isOpen && window.innerWidth < parseInt(darkTheme.breakpoints.md) && (
-        <div 
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 250, // width of sidebar
-            width: `calc(100% - 250px)`,
-            height: '100vh',
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-            zIndex: 998,
-            display: isOpen ? 'block' : 'none'
-          }}
-          onClick={() => setIsOpen(false)}
-        />
-      )}
     </>
   );
 };

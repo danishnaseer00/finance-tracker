@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { FaTimes, FaPlus, FaArrowUp, FaArrowDown } from 'react-icons/fa';
+import { accountAPI, categoryAPI } from '../services/api';
 
 const FormOverlay = styled.div`
   position: fixed;
@@ -100,6 +101,11 @@ const FormSelect = styled.select`
     border-color: ${(props) => props.theme.colors.primary};
     box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
   }
+
+  option {
+    background: ${(props) => props.theme.colors.background};
+    color: ${(props) => props.theme.colors.textPrimary};
+  }
 `;
 
 const TypeToggle = styled.div`
@@ -127,6 +133,10 @@ const TypeToggleOption = styled.button<{ active: boolean }>`
   font-weight: ${(props) => props.active ? '600' : '400'};
   cursor: pointer;
   transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
 
   &:first-child {
     border-right: 1px solid ${(props) => props.theme.colors.border};
@@ -145,6 +155,10 @@ const SubmitButton = styled.button`
   cursor: pointer;
   transition: all 0.3s ease;
   margin-top: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
 
   &:hover {
     opacity: 0.9;
@@ -158,12 +172,14 @@ const SubmitButton = styled.button`
   }
 `;
 
-const TransactionForm: React.FC<{ 
-  isOpen: boolean; 
-  onClose: () => void; 
+interface TransactionFormProps {
+  isOpen: boolean;
+  onClose: () => void;
   onSubmit: (transaction: any) => void;
   initialData?: any;
-}> = ({ isOpen, onClose, onSubmit, initialData }) => {
+}
+
+const TransactionForm: React.FC<TransactionFormProps> = ({ isOpen, onClose, onSubmit, initialData }) => {
   const [formData, setFormData] = useState({
     account_id: '',
     category_id: '',
@@ -175,15 +191,29 @@ const TransactionForm: React.FC<{
     notes: '',
   });
 
+  const [accounts, setAccounts] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (isOpen) {
+      fetchFormData();
+    }
+  }, [isOpen]);
+
   useEffect(() => {
     if (initialData) {
       setFormData({
-        ...formData,
-        ...initialData,
+        account_id: initialData.account_id?.toString() || '',
+        category_id: initialData.category_id?.toString() || '',
+        transaction_type: initialData.transaction_type || 'expense',
+        amount: initialData.amount?.toString() || '',
+        description: initialData.description || '',
         transaction_date: initialData.transaction_date || new Date().toISOString().split('T')[0],
+        payment_method: initialData.payment_method || '',
+        notes: initialData.notes || '',
       });
     } else {
-      // Reset form when not editing
       setFormData({
         account_id: '',
         category_id: '',
@@ -197,6 +227,22 @@ const TransactionForm: React.FC<{
     }
   }, [initialData, isOpen]);
 
+  const fetchFormData = async () => {
+    try {
+      setLoading(true);
+      const [accountsRes, categoriesRes] = await Promise.all([
+        accountAPI.getAccounts(),
+        categoryAPI.getCategories()
+      ]);
+      setAccounts(accountsRes.data);
+      setCategories(categoriesRes.data);
+    } catch (error) {
+      console.error('Error fetching form data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
@@ -208,14 +254,25 @@ const TransactionForm: React.FC<{
   const handleTypeChange = (type: 'income' | 'expense') => {
     setFormData(prev => ({
       ...prev,
-      transaction_type: type
+      transaction_type: type,
+      category_id: '' // Reset category when type changes
     }));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit(formData);
+    
+    const submitData = {
+      ...formData,
+      account_id: parseInt(formData.account_id),
+      category_id: parseInt(formData.category_id),
+      amount: parseFloat(formData.amount),
+    };
+    
+    onSubmit(submitData);
   };
+
+  const filteredCategories = categories.filter(cat => cat.category_type === formData.transaction_type);
 
   if (!isOpen) return null;
 
@@ -229,121 +286,142 @@ const TransactionForm: React.FC<{
           </CloseButton>
         </FormHeader>
 
-        <form onSubmit={handleSubmit}>
-          <TypeToggle>
-            <TypeToggleOption 
-              active={formData.transaction_type === 'expense'} 
-              onClick={() => handleTypeChange('expense')}
-            >
-              <FaArrowDown style={{ marginRight: '0.5rem' }} /> Expense
-            </TypeToggleOption>
-            <TypeToggleOption 
-              active={formData.transaction_type === 'income'} 
-              onClick={() => handleTypeChange('income')}
-            >
-              <FaArrowUp style={{ marginRight: '0.5rem' }} /> Income
-            </TypeToggleOption>
-          </TypeToggle>
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: '2rem' }}>Loading...</div>
+        ) : (
+          <form onSubmit={handleSubmit}>
+            <TypeToggle>
+              <TypeToggleOption 
+                type="button"
+                active={formData.transaction_type === 'expense'} 
+                onClick={() => handleTypeChange('expense')}
+              >
+                <FaArrowDown /> Expense
+              </TypeToggleOption>
+              <TypeToggleOption 
+                type="button"
+                active={formData.transaction_type === 'income'} 
+                onClick={() => handleTypeChange('income')}
+              >
+                <FaArrowUp /> Income
+              </TypeToggleOption>
+            </TypeToggle>
 
-          <FormGroup>
-            <FormLabel>Amount</FormLabel>
-            <FormInput
-              type="number"
-              name="amount"
-              value={formData.amount}
-              onChange={handleChange}
-              placeholder="0.00"
-              step="0.01"
-              min="0"
-              required
-            />
-          </FormGroup>
+            <FormGroup>
+              <FormLabel>Amount *</FormLabel>
+              <FormInput
+                type="number"
+                name="amount"
+                value={formData.amount}
+                onChange={handleChange}
+                placeholder="0.00"
+                step="0.01"
+                min="0"
+                required
+              />
+            </FormGroup>
 
-          <FormGroup>
-            <FormLabel>Description</FormLabel>
-            <FormInput
-              type="text"
-              name="description"
-              value={formData.description}
-              onChange={handleChange}
-              placeholder="Transaction description"
-              required
-            />
-          </FormGroup>
+            <FormGroup>
+              <FormLabel>Description *</FormLabel>
+              <FormInput
+                type="text"
+                name="description"
+                value={formData.description}
+                onChange={handleChange}
+                placeholder="Transaction description"
+                required
+              />
+            </FormGroup>
 
-          <FormGroup>
-            <FormLabel>Account</FormLabel>
-            <FormSelect
-              name="account_id"
-              value={formData.account_id}
-              onChange={handleChange}
-              required
-            >
-              <option value="">Select an account</option>
-              {/* Options will be populated from API */}
-              <option value="1">Main Checking</option>
-              <option value="2">Savings</option>
-              <option value="3">Credit Card</option>
-            </FormSelect>
-          </FormGroup>
+            <FormGroup>
+              <FormLabel>Account *</FormLabel>
+              <FormSelect
+                name="account_id"
+                value={formData.account_id}
+                onChange={handleChange}
+                required
+              >
+                <option value="">Select an account</option>
+                {accounts.map(account => (
+                  <option key={account.account_id} value={account.account_id}>
+                    {account.account_name} (${account.balance})
+                  </option>
+                ))}
+              </FormSelect>
+            </FormGroup>
 
-          <FormGroup>
-            <FormLabel>Category</FormLabel>
-            <FormSelect
-              name="category_id"
-              value={formData.category_id}
-              onChange={handleChange}
-              required
-            >
-              <option value="">Select a category</option>
-              {/* Options will be populated from API */}
-              <option value="1">Food & Dining</option>
-              <option value="2">Transportation</option>
-              <option value="3">Shopping</option>
-              <option value="4">Salary</option>
-              <option value="5">Freelance</option>
-            </FormSelect>
-          </FormGroup>
+            <FormGroup>
+              <FormLabel>Category *</FormLabel>
+              <FormSelect
+                name="category_id"
+                value={formData.category_id}
+                onChange={handleChange}
+                required
+              >
+                <option value="">Select a category</option>
+                {filteredCategories.length === 0 ? (
+                  <option value="" disabled>
+                    No categories available for {formData.transaction_type}
+                  </option>
+                ) : (
+                  filteredCategories.map(category => (
+                    <option key={category.category_id} value={category.category_id}>
+                      {category.icon} {category.category_name}
+                    </option>
+                  ))
+                )}
+              </FormSelect>
+              {filteredCategories.length === 0 && (
+                <div style={{ 
+                  color: '#f59e0b', 
+                  fontSize: '0.875rem', 
+                  marginTop: '0.5rem' 
+                }}>
+                  No {formData.transaction_type} categories found. Please create one first.
+                </div>
+              )}
+            </FormGroup>
 
-          <FormGroup>
-            <FormLabel>Date</FormLabel>
-            <FormInput
-              type="date"
-              name="transaction_date"
-              value={formData.transaction_date}
-              onChange={handleChange}
-              required
-            />
-          </FormGroup>
+            <FormGroup>
+              <FormLabel>Date *</FormLabel>
+              <FormInput
+                type="date"
+                name="transaction_date"
+                value={formData.transaction_date}
+                onChange={handleChange}
+                required
+              />
+            </FormGroup>
 
-          <FormGroup>
-            <FormLabel>Payment Method</FormLabel>
-            <FormInput
-              type="text"
-              name="payment_method"
-              value={formData.payment_method}
-              onChange={handleChange}
-              placeholder="Cash, Credit Card, etc."
-            />
-          </FormGroup>
+            <FormGroup>
+              <FormLabel>Payment Method</FormLabel>
+              <FormInput
+                type="text"
+                name="payment_method"
+                value={formData.payment_method}
+                onChange={handleChange}
+                placeholder="Cash, Credit Card, etc."
+              />
+            </FormGroup>
 
-          <FormGroup>
-            <FormLabel>Notes</FormLabel>
-            <FormInput
-              as="textarea"
-              name="notes"
-              value={formData.notes}
-              onChange={handleChange}
-              placeholder="Additional notes (optional)"
-              rows={3}
-            />
-          </FormGroup>
+            <FormGroup>
+              <FormLabel>Notes</FormLabel>
+              <FormInput
+                as="textarea"
+                name="notes"
+                value={formData.notes}
+                onChange={handleChange}
+                placeholder="Additional notes (optional)"
+                rows={3}
+              />
+            </FormGroup>
 
-          <SubmitButton type="submit">
-            <FaPlus style={{ marginRight: '0.5rem' }} />
-            {initialData ? 'Update Transaction' : 'Add Transaction'}
-          </SubmitButton>
-        </form>
+            <SubmitButton type="submit">
+              <FaPlus />
+              {initialData ? 'Update Transaction' : 'Add Transaction'}
+            </SubmitButton>
+          </form>
+        )}
       </FormContainer>
     </FormOverlay>
   );

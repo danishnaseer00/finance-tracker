@@ -38,7 +38,6 @@ def root():
 # Authentication Routes
 @app.post("/auth/register", status_code=201)
 def register(user: UserCreate, db: Session = Depends(get_db)):
-    # Check if user already exists
     db_user = crud.get_user_by_username(db, user.username)
     if db_user:
         raise HTTPException(
@@ -46,7 +45,6 @@ def register(user: UserCreate, db: Session = Depends(get_db)):
             detail="Username already registered"
         )
     
-    # Check if email already exists
     db_user = crud.get_user_by_email(db, user.email)
     if db_user:
         raise HTTPException(
@@ -55,6 +53,10 @@ def register(user: UserCreate, db: Session = Depends(get_db)):
         )
     
     created_user = crud.create_user(db, user)
+    
+    # Create default categories for new user
+    crud.create_default_categories(db, created_user.user_id)
+    
     return {"message": "User created successfully", "user_id": created_user.user_id}
 
 @app.post("/auth/login")
@@ -83,7 +85,7 @@ def login(user_credentials: UserLogin, db: Session = Depends(get_db)):
         }
     }
 
-# Protected Routes - require authentication
+# Protected Routes
 @app.get("/users/me")
 def read_users_me(current_user: User = Depends(get_current_user)):
     return current_user
@@ -105,6 +107,20 @@ def get_account(account_id: int, current_user: User = Depends(get_current_user),
     if not account:
         raise HTTPException(status_code=404, detail="Account not found")
     return account
+
+@app.put("/accounts/{account_id}")
+def update_account(account_id: int, account: AccountCreate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    updated_account = crud.update_account(db, account_id, account, current_user.user_id)
+    if not updated_account:
+        raise HTTPException(status_code=404, detail="Account not found")
+    return updated_account
+
+@app.delete("/accounts/{account_id}")
+def delete_account(account_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    deleted = crud.delete_account(db, account_id, current_user.user_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Account not found")
+    return {"message": "Account deleted successfully"}
 
 # Categories
 @app.get("/categories")
@@ -141,6 +157,20 @@ def get_transaction(transaction_id: int, current_user: User = Depends(get_curren
     if not transaction:
         raise HTTPException(status_code=404, detail="Transaction not found")
     return transaction
+
+@app.put("/transactions/{transaction_id}")
+def update_transaction(transaction_id: int, transaction: TransactionCreate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    updated_transaction = crud.update_transaction(db, transaction_id, transaction, current_user.user_id)
+    if not updated_transaction:
+        raise HTTPException(status_code=404, detail="Transaction not found")
+    return updated_transaction
+
+@app.delete("/transactions/{transaction_id}")
+def delete_transaction(transaction_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    deleted = crud.delete_transaction(db, transaction_id, current_user.user_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Transaction not found")
+    return {"message": "Transaction deleted successfully"}
 
 # Budgets
 @app.get("/budgets")

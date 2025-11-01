@@ -5,17 +5,16 @@ import Sidebar from '../components/nav/Sidebar';
 const LayoutContainer = styled.div`
   display: flex;
   min-height: 100vh;
+  background-color: ${(props) => props.theme.colors.background};
 `;
 
 const MainContent = styled.main`
   flex: 1;
   display: flex;
   flex-direction: column;
-  margin-left: 70px; /* Default sidebar width */
-  
-  @media (max-width: ${(props) => props.theme.breakpoints.md}) {
-    margin-left: 0;
-  }
+  margin-left: 0;
+  width: 100%;
+  min-height: 100vh;
 `;
 
 interface LayoutProps {

@@ -27,6 +27,39 @@ def get_user_by_email(db: Session, email: str):
 def get_user_by_id(db: Session, user_id: int):
     return db.query(User).filter(User.user_id == user_id).first()
 
+# Create default categories for new users
+def create_default_categories(db: Session, user_id: int):
+    default_categories = [
+        # Income categories
+        {'category_name': 'Salary', 'category_type': 'income', 'icon': '💼', 'color': '#10b981'},
+        {'category_name': 'Freelance', 'category_type': 'income', 'icon': '💻', 'color': '#3b82f6'},
+        {'category_name': 'Investment', 'category_type': 'income', 'icon': '📈', 'color': '#8b5cf6'},
+        {'category_name': 'Business', 'category_type': 'income', 'icon': '💰', 'color': '#06b6d4'},
+        # Expense categories
+        {'category_name': 'Food & Dining', 'category_type': 'expense', 'icon': '🍔', 'color': '#ef4444'},
+        {'category_name': 'Transportation', 'category_type': 'expense', 'icon': '🚗', 'color': '#f59e0b'},
+        {'category_name': 'Shopping', 'category_type': 'expense', 'icon': '🛍️', 'color': '#ec4899'},
+        {'category_name': 'Entertainment', 'category_type': 'expense', 'icon': '🎬', 'color': '#6366f1'},
+        {'category_name': 'Bills & Utilities', 'category_type': 'expense', 'icon': '💡', 'color': '#14b8a6'},
+        {'category_name': 'Healthcare', 'category_type': 'expense', 'icon': '🏥', 'color': '#f43f5e'},
+        {'category_name': 'Education', 'category_type': 'expense', 'icon': '📚', 'color': '#8b5cf6'},
+        {'category_name': 'Travel', 'category_type': 'expense', 'icon': '✈️', 'color': '#0ea5e9'},
+    ]
+    
+    for cat_data in default_categories:
+        new_category = Category(
+            user_id=user_id,
+            category_name=cat_data['category_name'],
+            category_type=cat_data['category_type'],
+            icon=cat_data['icon'],
+            color=cat_data['color'],
+            is_default=True
+        )
+        db.add(new_category)
+    
+    db.commit()
+    return True
+
 # Accounts
 def get_accounts(db: Session, user_id: int):
     return db.query(Account).filter(Account.user_id == user_id, Account.is_active == True).all()
@@ -45,6 +78,32 @@ def create_account(db: Session, account: AccountCreate, user_id: int):
 
 def get_account_by_id(db: Session, account_id: int, user_id: int):
     return db.query(Account).filter(Account.account_id == account_id, Account.user_id == user_id).first()
+
+def update_account(db: Session, account_id: int, account: AccountCreate, user_id: int):
+    db_account = db.query(Account).filter(Account.account_id == account_id, Account.user_id == user_id).first()
+    if db_account:
+        db_account.account_name = account.account_name
+        db_account.account_type = account.account_type
+        db_account.balance = account.balance
+        db.commit()
+        db.refresh(db_account)
+        return db_account
+    return None
+
+def delete_account(db: Session, account_id: int, user_id: int):
+    db_account = db.query(Account).filter(Account.account_id == account_id, Account.user_id == user_id).first()
+    if db_account:
+        # Check if account has any transactions
+        has_transactions = db.query(Transaction).filter(Transaction.account_id == account_id).first()
+        if has_transactions:
+            # Soft delete if has transactions
+            db_account.is_active = False
+        else:
+            # Hard delete if no transactions
+            db.delete(db_account)
+        db.commit()
+        return True
+    return False
 
 # Categories
 def get_categories(db: Session, user_id: int):
@@ -98,6 +157,56 @@ def create_transaction(db: Session, transaction: TransactionCreate, user_id: int
 
 def get_transaction_by_id(db: Session, transaction_id: int, user_id: int):
     return db.query(Transaction).filter(Transaction.transaction_id == transaction_id, Transaction.user_id == user_id).first()
+
+def update_transaction(db: Session, transaction_id: int, transaction: TransactionCreate, user_id: int):
+    db_transaction = db.query(Transaction).filter(Transaction.transaction_id == transaction_id, Transaction.user_id == user_id).first()
+    if db_transaction:
+        # Reverse old transaction balance impact
+        account = db.query(Account).filter(Account.account_id == db_transaction.account_id, Account.user_id == user_id).first()
+        if account:
+            if db_transaction.transaction_type == "income":
+                account.balance -= db_transaction.amount
+            else:
+                account.balance += db_transaction.amount
+        
+        # Update transaction
+        db_transaction.account_id = transaction.account_id
+        db_transaction.category_id = transaction.category_id
+        db_transaction.transaction_type = transaction.transaction_type
+        db_transaction.amount = transaction.amount
+        db_transaction.description = transaction.description
+        db_transaction.transaction_date = transaction.transaction_date
+        db_transaction.payment_method = transaction.payment_method
+        db_transaction.notes = transaction.notes
+        
+        # Apply new transaction balance impact
+        new_account = db.query(Account).filter(Account.account_id == transaction.account_id, Account.user_id == user_id).first()
+        if new_account:
+            if transaction.transaction_type == "income":
+                new_account.balance += transaction.amount
+            else:
+                new_account.balance -= transaction.amount
+        
+        db.commit()
+        db.refresh(db_transaction)
+        return db_transaction
+    return None
+
+def delete_transaction(db: Session, transaction_id: int, user_id: int):
+    db_transaction = db.query(Transaction).filter(Transaction.transaction_id == transaction_id, Transaction.user_id == user_id).first()
+    if db_transaction:
+        # Reverse transaction balance impact
+        account = db.query(Account).filter(Account.account_id == db_transaction.account_id, Account.user_id == user_id).first()
+        if account:
+            if db_transaction.transaction_type == "income":
+                account.balance -= db_transaction.amount
+            else:
+                account.balance += db_transaction.amount
+        
+        db.delete(db_transaction)
+        db.commit()
+        return True
+    return False
 
 # Budgets
 def get_budgets(db: Session, user_id: int):
