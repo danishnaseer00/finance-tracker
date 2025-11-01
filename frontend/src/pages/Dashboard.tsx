@@ -6,7 +6,7 @@ import { Link } from 'react-router-dom';
 import BarChartComponent from '../components/charts/BarChartComponent';
 import PieChartComponent from '../components/charts/PieChartComponent';
 import LineChartComponent from '../components/charts/LineChartComponent';
-import { transactionAPI } from '../services/api';
+import { transactionAPI, accountAPI } from '../services/api';
 
 const DashboardContainer = styled.div`
   display: flex;
@@ -170,14 +170,15 @@ const Dashboard: React.FC = () => {
   const fetchDashboardData = async () => {
     try {
       const transactionsResponse = await transactionAPI.getTransactions();
-      const transactions = transactionsResponse.data;
+      const accountsResponse = await accountAPI.getAccounts();
       
-      const totalBalance = transactions
-        .filter((t: any) => t.transaction_type === 'income')
-        .reduce((sum: number, t: any) => sum + parseFloat(t.amount), 0) 
-        - transactions
-          .filter((t: any) => t.transaction_type === 'expense')
-          .reduce((sum: number, t: any) => sum + parseFloat(t.amount), 0);
+      const transactions = transactionsResponse.data;
+      const accounts = accountsResponse.data;
+      
+      // Calculate total balance from actual account balances
+      const totalBalance = accounts.reduce((sum: number, account: any) => 
+        sum + parseFloat(account.balance || 0), 0
+      );
       
       const totalIncome = transactions
         .filter((t: any) => t.transaction_type === 'income')
@@ -194,6 +195,7 @@ const Dashboard: React.FC = () => {
         recentTransactions: transactions.slice(0, 5),
       });
 
+      // Expenses by category for charts
       const categoryMap: Record<string, number> = {};
       transactions
         .filter((t: any) => t.transaction_type === 'expense')
@@ -209,6 +211,7 @@ const Dashboard: React.FC = () => {
 
       setExpensesByCategory(expensesData);
 
+      // Monthly trends (sample data for now)
       const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
       const trends = months.map((name) => ({
         name,
@@ -239,7 +242,7 @@ const Dashboard: React.FC = () => {
   return (
     <DashboardContainer>
       <PageHeader>
-        <HeaderTitle>Dashboard</HeaderTitle>
+        <HeaderTitle>Fintrack</HeaderTitle>
         <UserSection>
           <span>Welcome, {state.user?.first_name || state.user?.username}!</span>
           <UserAvatar>{userInitials}</UserAvatar>

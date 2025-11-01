@@ -3,6 +3,7 @@ from .models import Account, Transaction, Category, Budget, User
 from .schemas import AccountCreate, TransactionCreate, CategoryCreate, UserCreate, BudgetCreate
 from . import auth
 from decimal import Decimal
+from sqlalchemy.orm import joinedload
 
 # Users
 def create_user(db: Session, user: UserCreate):
@@ -126,9 +127,13 @@ def create_category(db: Session, category: CategoryCreate, user_id: int):
 def get_category_by_id(db: Session, category_id: int, user_id: int):
     return db.query(Category).filter(Category.category_id == category_id, Category.user_id == user_id).first()
 
-# Transactions
+
 def get_transactions(db: Session, user_id: int):
-    return db.query(Transaction).filter(Transaction.user_id == user_id).order_by(Transaction.transaction_date.desc()).all()
+    return db.query(Transaction)\
+        .options(joinedload(Transaction.category), joinedload(Transaction.account))\
+        .filter(Transaction.user_id == user_id)\
+        .order_by(Transaction.transaction_date.desc())\
+        .all()
 
 def create_transaction(db: Session, transaction: TransactionCreate, user_id: int):
     new_transaction = Transaction(

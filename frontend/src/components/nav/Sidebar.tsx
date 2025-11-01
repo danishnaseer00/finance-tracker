@@ -72,7 +72,7 @@ const ToggleButton = styled.button<{ $isOpen: boolean }>`
   justify-content: center;
   border-radius: ${(props) => props.theme.borderRadius.md};
   z-index: 1001;
-  transition: all 0.3s ease;
+  transition: left 0.3s ease, background 0.2s ease, transform 0.2s ease;
   box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
 
   &:hover {
@@ -228,16 +228,15 @@ const Sidebar: React.FC = () => {
   return (
     <>
       <ToggleButton onClick={toggleSidebar} $isOpen={isOpen}>
-      {isOpen ? <FaTimes /> : <FaBars />}
-    </ToggleButton>
-
+        {isOpen ? <FaTimes /> : <FaBars />}
+      </ToggleButton>
       
       <MobileOverlay $isOpen={isOpen} onClick={() => setIsOpen(false)} />
       <SidebarContainer $isOpen={isOpen}>
         <TopSection>
           <Logo $isOpen={isOpen}>
             <FaWallet style={{ color: darkTheme.colors.primary }} />
-            {isOpen && <h1>FinanceTracker</h1>}
+            {isOpen && <h1>Fintrack</h1>}
           </Logo>
         </TopSection>
         
