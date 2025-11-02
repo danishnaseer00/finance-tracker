@@ -16,10 +16,12 @@ app = FastAPI(title="Finance Tracker API")
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=[
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "https://finance-tracker-frontend.onrender.com",  # Add after deployment
+        "*"  # Allow all for now (remove in production)
+    ],
 )
 
 # Dependency
