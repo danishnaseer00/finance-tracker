@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { FaWallet, FaChartLine, FaExchangeAlt, FaList, FaCog, FaSignOutAlt, FaBars, FaTimes } from 'react-icons/fa';
 import { useAuth } from '../../context/AuthContext';
 import { darkTheme } from '../../themes/GlobalStyle';
@@ -57,10 +57,10 @@ const Logo = styled.div<{ $isOpen: boolean }>`
 
 const ToggleButton = styled.button<{ $isOpen: boolean }>`
   position: fixed;
-  top: 1.25rem;
-  left: ${(props) => (props.$isOpen ? '260px' : '1rem')};
+  top: 12px;
+  left: ${(props) => (props.$isOpen ? '260px' : '12px')};
   background: ${(props) => props.theme.colors.primary};
-  border: 1px solid ${(props) => props.theme.colors.border};
+  border: none;
   color: white;
   font-size: ${(props) => props.theme.fontSize.lg};
   cursor: pointer;
@@ -71,14 +71,12 @@ const ToggleButton = styled.button<{ $isOpen: boolean }>`
   align-items: center;
   justify-content: center;
   border-radius: ${(props) => props.theme.borderRadius.md};
-  z-index: 1001;
-  transition: left 0.3s ease, background 0.2s ease, transform 0.2s ease;
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+  z-index: 1002;
+  transition: left 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 
   &:hover {
     background: ${(props) => props.theme.colors.primaryDark};
-    transform: scale(1.05);
-    box-shadow: 0 6px 16px rgba(59, 130, 246, 0.5);
   }
 
   &:active {
@@ -86,7 +84,8 @@ const ToggleButton = styled.button<{ $isOpen: boolean }>`
   }
   
   @media (max-width: ${(props) => props.theme.breakpoints.md}) {
-    left: 1rem;
+    left: 12px;
+    top: 12px;
   }
 `;
 
@@ -202,7 +201,7 @@ const MobileOverlay = styled.div<{ $isOpen: boolean }>`
     right: 0;
     bottom: 0;
     background: rgba(0, 0, 0, 0.5);
-    z-index: 998;
+    z-index: 999;
   }
 `;
 
@@ -210,6 +209,7 @@ const Sidebar: React.FC = () => {
   const [isOpen, setIsOpen] = useState(true);
   const { state, logout } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
   
   const toggleSidebar = () => {
     setIsOpen(!isOpen);
@@ -219,10 +219,19 @@ const Sidebar: React.FC = () => {
     ? `${state.user.first_name?.charAt(0) || ''}${state.user.last_name?.charAt(0) || ''}`.toUpperCase()
     : '?';
 
-  const handleMenuItemClick = () => {
-    if (window.innerWidth < parseInt(darkTheme.breakpoints.md)) {
-      setIsOpen(false);
-    }
+  const handleMenuItemClick = (path: string) => {
+    // Always close sidebar after clicking a menu item
+    setIsOpen(false);
+    
+    // Small delay to allow animation to complete before navigation
+    setTimeout(() => {
+      navigate(path);
+    }, 100);
+  };
+
+  const handleLogout = () => {
+    setIsOpen(false);
+    logout();
   };
 
   return (
@@ -245,7 +254,10 @@ const Sidebar: React.FC = () => {
             to="/dashboard" 
             $isActive={location.pathname === '/dashboard'}
             $isOpen={isOpen}
-            onClick={handleMenuItemClick}
+            onClick={(e) => {
+              e.preventDefault();
+              handleMenuItemClick('/dashboard');
+            }}
           >
             <FaChartLine />
             <span>Dashboard</span>
@@ -254,7 +266,10 @@ const Sidebar: React.FC = () => {
             to="/accounts" 
             $isActive={location.pathname === '/accounts'}
             $isOpen={isOpen}
-            onClick={handleMenuItemClick}
+            onClick={(e) => {
+              e.preventDefault();
+              handleMenuItemClick('/accounts');
+            }}
           >
             <FaWallet />
             <span>Accounts</span>
@@ -263,7 +278,10 @@ const Sidebar: React.FC = () => {
             to="/transactions" 
             $isActive={location.pathname === '/transactions'}
             $isOpen={isOpen}
-            onClick={handleMenuItemClick}
+            onClick={(e) => {
+              e.preventDefault();
+              handleMenuItemClick('/transactions');
+            }}
           >
             <FaExchangeAlt />
             <span>Transactions</span>
@@ -272,7 +290,10 @@ const Sidebar: React.FC = () => {
             to="/budgets" 
             $isActive={location.pathname === '/budgets'}
             $isOpen={isOpen}
-            onClick={handleMenuItemClick}
+            onClick={(e) => {
+              e.preventDefault();
+              handleMenuItemClick('/budgets');
+            }}
           >
             <FaList />
             <span>Budgets</span>
@@ -281,7 +302,10 @@ const Sidebar: React.FC = () => {
             to="/settings" 
             $isActive={location.pathname === '/settings'}
             $isOpen={isOpen}
-            onClick={handleMenuItemClick}
+            onClick={(e) => {
+              e.preventDefault();
+              handleMenuItemClick('/settings');
+            }}
           >
             <FaCog />
             <span>Settings</span>
@@ -305,7 +329,7 @@ const Sidebar: React.FC = () => {
             $isOpen={isOpen}
             onClick={(e) => {
               e.preventDefault();
-              logout();
+              handleLogout();
             }}
           >
             <FaSignOutAlt />

@@ -168,68 +168,92 @@ const Dashboard: React.FC = () => {
   const [monthlyTrends, setMonthlyTrends] = useState<any[]>([]);
 
   const fetchDashboardData = async () => {
-    try {
-      const transactionsResponse = await transactionAPI.getTransactions();
-      const accountsResponse = await accountAPI.getAccounts();
-      
-      const transactions = transactionsResponse.data;
-      const accounts = accountsResponse.data;
-      
-      // Calculate total balance from actual account balances
-      const totalBalance = accounts.reduce((sum: number, account: any) => 
-        sum + parseFloat(account.balance || 0), 0
-      );
-      
-      const totalIncome = transactions
-        .filter((t: any) => t.transaction_type === 'income')
-        .reduce((sum: number, t: any) => sum + parseFloat(t.amount), 0);
-      
-      const totalExpense = transactions
-        .filter((t: any) => t.transaction_type === 'expense')
-        .reduce((sum: number, t: any) => sum + parseFloat(t.amount), 0);
+  try {
+    const transactionsResponse = await transactionAPI.getTransactions();
+    const accountsResponse = await accountAPI.getAccounts();
+    
+    const transactions = transactionsResponse.data;
+    const accounts = accountsResponse.data;
+    
+    // Calculate total balance from actual account balances
+    const totalBalance = accounts.reduce((sum: number, account: any) => 
+      sum + parseFloat(account.balance || 0), 0
+    );
+    
+    const totalIncome = transactions
+      .filter((t: any) => t.transaction_type === 'income')
+      .reduce((sum: number, t: any) => sum + parseFloat(t.amount), 0);
+    
+    const totalExpense = transactions
+      .filter((t: any) => t.transaction_type === 'expense')
+      .reduce((sum: number, t: any) => sum + parseFloat(t.amount), 0);
 
-      setDashboardData({
-        totalBalance,
-        totalIncome,
-        totalExpense,
-        recentTransactions: transactions.slice(0, 5),
+    setDashboardData({
+      totalBalance,
+      totalIncome,
+      totalExpense,
+      recentTransactions: transactions.slice(0, 5),
+    });
+
+    // Expenses by category for charts
+    const categoryMap: Record<string, number> = {};
+    transactions
+      .filter((t: any) => t.transaction_type === 'expense')
+      .forEach((t: any) => {
+        const category = t.category?.category_name || 'Uncategorized';
+        categoryMap[category] = (categoryMap[category] || 0) + parseFloat(t.amount);
       });
 
-      // Expenses by category for charts
-      const categoryMap: Record<string, number> = {};
-      transactions
-        .filter((t: any) => t.transaction_type === 'expense')
-        .forEach((t: any) => {
-          const category = t.category?.category_name || 'Uncategorized';
-          categoryMap[category] = (categoryMap[category] || 0) + parseFloat(t.amount);
-        });
+    const expensesData = Object.entries(categoryMap).map(([name, value]) => ({
+      name,
+      value,
+    }));
 
-      const expensesData = Object.entries(categoryMap).map(([name, value]) => ({
-        name,
-        value,
-      }));
+    setExpensesByCategory(expensesData);
 
-      setExpensesByCategory(expensesData);
+    // Calculate monthly trends from actual transactions
+    const currentYear = new Date().getFullYear();
+    const monthlyData: Record<string, { income: number; expenses: number }> = {};
 
-      // Monthly trends (sample data for now)
-      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
-      const trends = months.map((name) => ({
-        name,
-        income: 3000 + Math.random() * 400,
-        expenses: 2000 + Math.random() * 400,
-      }));
-
-      const trendsWithBalance = trends.map(trend => ({
-        ...trend,
-        balance: trend.income - trend.expenses,
-      }));
-
-      setMonthlyTrends(trendsWithBalance);
-
-    } catch (error) {
-      console.error('Error fetching dashboard data:', error);
+    // Initialize last 6 months
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const now = new Date();
+    for (let i = 5; i >= 0; i--) {
+      const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const monthKey = `${monthNames[date.getMonth()]}`;
+      monthlyData[monthKey] = { income: 0, expenses: 0 };
     }
-  };
+
+    // Aggregate transactions by month
+    transactions.forEach((t: any) => {
+      const transactionDate = new Date(t.transaction_date);
+      if (transactionDate.getFullYear() === currentYear) {
+        const monthKey = monthNames[transactionDate.getMonth()];
+        if (monthlyData[monthKey]) {
+          const amount = parseFloat(t.amount);
+          if (t.transaction_type === 'income') {
+            monthlyData[monthKey].income += amount;
+          } else {
+            monthlyData[monthKey].expenses += amount;
+          }
+        }
+      }
+    });
+
+    // Convert to array format for chart
+    const trendsWithBalance = Object.entries(monthlyData).map(([name, data]) => ({
+      name,
+      income: data.income,
+      expenses: data.expenses,
+      balance: data.income - data.expenses,
+    }));
+
+    setMonthlyTrends(trendsWithBalance);
+
+  } catch (error) {
+    console.error('Error fetching dashboard data:', error);
+  }
+};
 
   useEffect(() => {
     fetchDashboardData();
