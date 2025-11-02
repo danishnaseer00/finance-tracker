@@ -67,7 +67,6 @@ finance-tracker/
 
 ### 📦 Installation
 
-```bash
 cd backend
 pip install -r requirements.txt
 ▶️ Run the Server
@@ -77,8 +76,9 @@ uvicorn app.main:app --reload
 Backend will start at:
 👉 http://127.0.0.1:8000
 
-💻 Frontend Setup (React + Vite)
-📦 Installation
+## 💻 Frontend Setup (React + Vite)
+
+ ### 📦 Installation
 bash
 Copy code
 cd frontend
@@ -90,7 +90,7 @@ npm run dev
 Frontend will start at:
 👉 http://localhost:3000
 
-🔗 API Overview
+## 🔗 API Overview
 Method	Endpoint	Description
 POST	/auth/register	Register a new user
 POST	/auth/login	Login user and get JWT token
@@ -109,28 +109,19 @@ env
 Copy code
 DATABASE_URL=postgresql://user:password@localhost/finance_tracker
 SECRET_KEY=your-secret-key
-🧠 Tech Stack
+
+## 🧠 Tech Stack
 Frontend:
-
-React + TypeScript + Vite
-
-Styled Components
-
-React Router
-
-Recharts
-
+  React + TypeScript + Vite
+  Styled Components
+  React Router
+  Recharts
 Backend:
-
-FastAPI
-
-SQLAlchemy + SQLite
-
-Pydantic
-
-JWT (python-jose)
-
-Uvicorn
+  FastAPI
+  SQLAlchemy + SQLite
+  Pydantic
+  JWT (python-jose)
+  Uvicorn
 
 🧩 Future Enhancements
 Multi-currency support
