@@ -114,6 +114,15 @@ export const budgetAPI = {
     month: number;
     year: number;
   }) => api.post('/budgets', budgetData),
+  
+  updateBudget: (id: number, budgetData: {
+    category_id: number;
+    budget_amount: number;
+    month: number;
+    year: number;
+  }) => api.put(`/budgets/${id}`, budgetData),
+  
+  deleteBudget: (id: number) => api.delete(`/budgets/${id}`),
 };
 
 export default api;

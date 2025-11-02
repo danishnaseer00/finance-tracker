@@ -228,7 +228,7 @@ def delete_transaction(db: Session, transaction_id: int, user_id: int):
 
 # Budgets
 def get_budgets(db: Session, user_id: int):
-    return db.query(Budget).filter(Budget.user_id == user_id).all()
+    return db.query(Budget).options(joinedload(Budget.category)).filter(Budget.user_id == user_id).all()
 
 def create_budget(db: Session, budget: BudgetCreate, user_id: int):
     new_budget = Budget(
@@ -242,3 +242,26 @@ def create_budget(db: Session, budget: BudgetCreate, user_id: int):
     db.commit()
     db.refresh(new_budget)
     return new_budget
+
+def get_budget_by_id(db: Session, budget_id: int, user_id: int):
+    return db.query(Budget).options(joinedload(Budget.category)).filter(Budget.budget_id == budget_id, Budget.user_id == user_id).first()
+
+def update_budget(db: Session, budget_id: int, budget: BudgetCreate, user_id: int):
+    db_budget = db.query(Budget).filter(Budget.budget_id == budget_id, Budget.user_id == user_id).first()
+    if db_budget:
+        db_budget.category_id = budget.category_id
+        db_budget.budget_amount = budget.budget_amount
+        db_budget.month = budget.month
+        db_budget.year = budget.year
+        db.commit()
+        db.refresh(db_budget)
+        return db_budget
+    return None
+
+def delete_budget(db: Session, budget_id: int, user_id: int):
+    db_budget = db.query(Budget).filter(Budget.budget_id == budget_id, Budget.user_id == user_id).first()
+    if db_budget:
+        db.delete(db_budget)
+        db.commit()
+        return True
+    return False

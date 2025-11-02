@@ -183,6 +183,27 @@ def create_budget(budget: BudgetCreate, current_user: User = Depends(get_current
     new_budget = crud.create_budget(db, budget, current_user.user_id)
     return new_budget
 
+@app.get("/budgets/{budget_id}")
+def get_budget(budget_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    budget = crud.get_budget_by_id(db, budget_id, current_user.user_id)
+    if not budget:
+        raise HTTPException(status_code=404, detail="Budget not found")
+    return budget
+
+@app.put("/budgets/{budget_id}")
+def update_budget(budget_id: int, budget: BudgetCreate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    updated_budget = crud.update_budget(db, budget_id, budget, current_user.user_id)
+    if not updated_budget:
+        raise HTTPException(status_code=404, detail="Budget not found")
+    return updated_budget
+
+@app.delete("/budgets/{budget_id}")
+def delete_budget(budget_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    deleted = crud.delete_budget(db, budget_id, current_user.user_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Budget not found")
+    return {"message": "Budget deleted successfully"}
+
 # Add this debug endpoint (around line 190)
 @app.get("/debug/user-data")
 def get_user_debug_data(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):

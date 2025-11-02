@@ -207,8 +207,7 @@ const Budgets: React.FC = () => {
   const handleFormSubmit = async (data: any) => {
     try {
       if (editingBudget) {
-        // Update functionality would go here if backend supports it
-        alert('Budget update not yet implemented in backend');
+        await budgetAPI.updateBudget(editingBudget.budget_id, data);
       } else {
         await budgetAPI.createBudget(data);
       }
@@ -225,8 +224,8 @@ const Budgets: React.FC = () => {
   const handleDeleteBudget = async (budgetId: number) => {
     if (window.confirm('Are you sure you want to delete this budget?')) {
       try {
-        // Delete functionality would go here if backend supports it
-        alert('Budget delete not yet implemented in backend');
+        await budgetAPI.deleteBudget(budgetId);
+        await fetchBudgets();
       } catch (error) {
         console.error('Error deleting budget:', error);
         alert('Failed to delete budget');
