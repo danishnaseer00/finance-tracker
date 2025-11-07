@@ -56,17 +56,17 @@ const Logo = styled.div<{ $isOpen: boolean }>`
 `;
 
 const ToggleButton = styled.button<{ $isOpen: boolean }>`
-  position: fixed;
-  top: 12px;
-  left: ${(props) => (props.$isOpen ? '260px' : '12px')};
+  position: absolute;
+  top: 15px;
+  left: ${(props) => (props.$isOpen ? '260px' : '20px')};
   background: ${(props) => props.theme.colors.primary};
   border: none;
   color: white;
-  font-size: ${(props) => props.theme.fontSize.lg};
+  font-size: ${(props) => props.theme.fontSize.md};
   cursor: pointer;
-  padding: 0.75rem;
-  width: 45px;
-  height: 45px;
+  padding: 0.5rem;
+  width: 35px;
+  height: 35px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -84,8 +84,8 @@ const ToggleButton = styled.button<{ $isOpen: boolean }>`
   }
   
   @media (max-width: ${(props) => props.theme.breakpoints.md}) {
-    left: 12px;
-    top: 12px;
+    left: ${(props) => (props.$isOpen ? '260px' : '15px')};
+    top: 15px;
   }
 `;
 
@@ -205,14 +205,18 @@ const MobileOverlay = styled.div<{ $isOpen: boolean }>`
   }
 `;
 
-const Sidebar: React.FC = () => {
-  const [isOpen, setIsOpen] = useState(true);
+interface SidebarProps {
+  isOpen: boolean;
+  setOpen: (isOpen: boolean) => void;
+}
+
+const Sidebar: React.FC<SidebarProps> = ({ isOpen, setOpen }) => {
   const { state, logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   
   const toggleSidebar = () => {
-    setIsOpen(!isOpen);
+    setOpen(!isOpen);
   };
 
   const userInitials = state.user 
@@ -221,7 +225,7 @@ const Sidebar: React.FC = () => {
 
   const handleMenuItemClick = (path: string) => {
     // Always close sidebar after clicking a menu item
-    setIsOpen(false);
+    setOpen(false);
     
     // Small delay to allow animation to complete before navigation
     setTimeout(() => {
@@ -230,7 +234,7 @@ const Sidebar: React.FC = () => {
   };
 
   const handleLogout = () => {
-    setIsOpen(false);
+    setOpen(false);
     logout();
   };
 
@@ -240,7 +244,7 @@ const Sidebar: React.FC = () => {
         {isOpen ? <FaTimes /> : <FaBars />}
       </ToggleButton>
       
-      <MobileOverlay $isOpen={isOpen} onClick={() => setIsOpen(false)} />
+      <MobileOverlay $isOpen={isOpen} onClick={() => setOpen(false)} />
       <SidebarContainer $isOpen={isOpen}>
         <TopSection>
           <Logo $isOpen={isOpen}>

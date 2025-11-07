@@ -1,34 +1,34 @@
-import React, { ReactNode } from 'react';
+import React, { useState } from 'react';
 import styled from 'styled-components';
 import Sidebar from '../components/nav/Sidebar';
 
-const LayoutContainer = styled.div`
+const AppContainer = styled.div`
   display: flex;
-  min-height: 100vh;
-  background-color: ${(props) => props.theme.colors.background};
+  height: 100vh;
+  background: ${(props) => props.theme.colors.background};
 `;
 
-const MainContent = styled.main`
+const MainContent = styled.main<{ $isOpen: boolean }>`
   flex: 1;
-  display: flex;
-  flex-direction: column;
-  margin-left: 0;
-  width: 100%;
-  min-height: 100vh;
+  overflow-y: auto;
+  transition: margin-left 0.3s ease;
+  margin-left: ${(props) => (props.$isOpen ? '250px' : '0')};
+
+  @media (max-width: ${(props) => props.theme.breakpoints.md}) {
+    margin-left: 0;
+  }
 `;
 
-interface LayoutProps {
-  children: ReactNode;
-}
+const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
-const Layout: React.FC<LayoutProps> = ({ children }) => {
   return (
-    <LayoutContainer>
-      <Sidebar />
-      <MainContent>
+    <AppContainer>
+      <Sidebar isOpen={sidebarOpen} setOpen={setSidebarOpen} />
+      <MainContent $isOpen={sidebarOpen}>
         {children}
       </MainContent>
-    </LayoutContainer>
+    </AppContainer>
   );
 };
 
