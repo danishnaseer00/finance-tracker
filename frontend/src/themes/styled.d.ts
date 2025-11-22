@@ -19,6 +19,11 @@ declare module 'styled-components' {
       textTertiary: string;
       border: string;
       shadow: string;
+      gradients: {
+        primary: string;
+        secondary: string;
+        surface: string;
+      };
     };
     spacing: {
       xs: string;
@@ -53,6 +58,12 @@ declare module 'styled-components' {
       '3xl': string;
       '4xl': string;
       '5xl': string;
+    };
+    shadows: {
+      neumorphic: string;
+      neumorphicInset: string;
+      neumorphicHover: string;
+      card: string;
     };
   }
 }

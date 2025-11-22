@@ -1,7 +1,7 @@
 import React, { ReactNode } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import Layout from '../layouts/Layout';
+import Layout from '../components/Layout';
 
 interface PrivateRouteProps {
   children: ReactNode;
@@ -9,7 +9,7 @@ interface PrivateRouteProps {
 
 const PrivateRoute: React.FC<PrivateRouteProps> = ({ children }) => {
   const { state } = useAuth();
-  
+
   return state.token ? <Layout>{children}</Layout> : <Navigate to="/login" replace />;
 };
 

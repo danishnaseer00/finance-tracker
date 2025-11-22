@@ -1,49 +1,41 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
-import { FaUser, FaLock, FaPalette, FaBell, FaShieldAlt, FaDownload } from 'react-icons/fa';
+import { FaUser, FaLock, FaPalette, FaShieldAlt, FaDownload } from 'react-icons/fa';
 import { useAuth } from '../../context/AuthContext';
 import { settingsAPI } from '../../services/api';
 import { useNavigate } from 'react-router-dom';
+import { Card } from '../../components/ui/Card';
+import { Button } from '../../components/ui/Button';
+import { Input } from '../../components/ui/Input';
 
-const SettingsContainer = styled.div`
-  padding: 2rem;
-  background-color: ${(props) => props.theme.colors.background};
-  min-height: 100vh;
-  width: 100%;
-`;
-
-const PageHeader = styled.div`
+const HeaderSection = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 2rem;
-  padding-left: 3.5rem;
-  
-  @media (max-width: ${(props) => props.theme.breakpoints.md}) {
-    padding-left: 5.5rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+`;
+
+const TitleSection = styled.div`
+  h1 {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+    background: ${props => props.theme.colors.gradients.primary};
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
   }
-`;
-
-const PageTitle = styled.h1`
-  font-size: ${(props) => props.theme.fontSize['2xl']};
-  color: ${(props) => props.theme.colors.textPrimary};
-  font-weight: 600;
-  margin-bottom: 0.5rem;
-`;
-
-const PageSubtitle = styled.p`
-  color: ${(props) => props.theme.colors.textSecondary};
-  font-size: ${(props) => props.theme.fontSize.md};
+  
+  p {
+    color: ${props => props.theme.colors.textSecondary};
+  }
 `;
 
 const SettingsGrid = styled.div`
   display: grid;
   gap: 1.5rem;
   max-width: 800px;
-`;
-
-const SettingCard = styled.div`
-  background: ${(props) => props.theme.colors.surface};
-  border-radius: ${(props) => props.theme.borderRadius.lg};
-  padding: 1.5rem;
-  border: 1px solid ${(props) => props.theme.colors.border};
+  margin: 0 auto;
 `;
 
 const SettingHeader = styled.div`
@@ -52,121 +44,81 @@ const SettingHeader = styled.div`
   gap: 1rem;
   margin-bottom: 1rem;
   padding-bottom: 1rem;
-  border-bottom: 1px solid ${(props) => props.theme.colors.border};
+  border-bottom: 1px solid ${props => props.theme.colors.border};
 `;
 
 const SettingIcon = styled.div`
   width: 40px;
   height: 40px;
-  border-radius: ${(props) => props.theme.borderRadius.md};
-  background: rgba(59, 130, 246, 0.1);
+  border-radius: 12px;
+  background: ${props => props.theme.colors.background};
+  box-shadow: ${props => props.theme.shadows.neumorphicInset};
   display: flex;
   align-items: center;
   justify-content: center;
-  color: ${(props) => props.theme.colors.primary};
-  font-size: ${(props) => props.theme.fontSize.lg};
+  color: ${props => props.theme.colors.primary};
+  font-size: 1.2rem;
 `;
 
 const SettingTitle = styled.h3`
-  font-size: ${(props) => props.theme.fontSize.lg};
-  color: ${(props) => props.theme.colors.textPrimary};
+  font-size: 1.1rem;
+  color: ${props => props.theme.colors.textPrimary};
   font-weight: 600;
 `;
 
 const SettingDescription = styled.p`
-  color: ${(props) => props.theme.colors.textSecondary};
-  font-size: ${(props) => props.theme.fontSize.sm};
-  margin-bottom: 1rem;
+  color: ${props => props.theme.colors.textSecondary};
+  font-size: 0.9rem;
+  margin-bottom: 1.5rem;
 `;
 
 const SettingRow = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.75rem 0;
+  padding: 1rem 0;
+  border-bottom: 1px solid ${props => props.theme.colors.border};
   
-  &:not(:last-child) {
-    border-bottom: 1px solid ${(props) => props.theme.colors.border};
+  &:last-child {
+    border-bottom: none;
   }
 `;
 
 const SettingLabel = styled.label`
-  color: ${(props) => props.theme.colors.textPrimary};
-  font-size: ${(props) => props.theme.fontSize.md};
-`;
-
-const Input = styled.input`
-  padding: 0.75rem;
-  background: ${(props) => props.theme.colors.background};
-  border: 1px solid ${(props) => props.theme.colors.border};
-  border-radius: ${(props) => props.theme.borderRadius.md};
-  color: ${(props) => props.theme.colors.textPrimary};
-  font-size: ${(props) => props.theme.fontSize.md};
-  width: 100%;
-  margin-top: 0.5rem;
-
-  &:focus {
-    outline: none;
-    border-color: ${(props) => props.theme.colors.primary};
-  }
-`;
-
-const Button = styled.button`
-  padding: 0.75rem 1.5rem;
-  background: ${(props) => props.theme.colors.primary};
-  color: white;
-  border: none;
-  border-radius: ${(props) => props.theme.borderRadius.md};
-  font-size: ${(props) => props.theme.fontSize.md};
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  
-  &:hover {
-    background: ${(props) => props.theme.colors.primaryDark};
-    transform: translateY(-2px);
-  }
-
-  &:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-  }
-`;
-
-const DangerButton = styled(Button)`
-  background: #ef4444;
-  
-  &:hover {
-    background: #dc2626;
-  }
-`;
-
-const FormGroup = styled.div`
-  margin-bottom: 1rem;
+  color: ${props => props.theme.colors.textPrimary};
+  font-size: 0.95rem;
+  font-weight: 500;
+  display: block;
+  margin-bottom: 0.5rem;
 `;
 
 const InfoText = styled.div`
-  color: ${(props) => props.theme.colors.textTertiary};
-  font-size: ${(props) => props.theme.fontSize.sm};
-  margin-top: 0.5rem;
+  color: ${props => props.theme.colors.textTertiary};
+  font-size: 0.9rem;
+`;
+
+const FormGroup = styled.div`
+  margin-bottom: 1.5rem;
 `;
 
 const SuccessMessage = styled.div`
   background: rgba(16, 185, 129, 0.1);
-  border: 1px solid #10b981;
-  color: #10b981;
+  border: 1px solid ${props => props.theme.colors.success};
+  color: ${props => props.theme.colors.success};
   padding: 0.75rem;
-  border-radius: ${(props) => props.theme.borderRadius.md};
+  border-radius: ${props => props.theme.borderRadius.md};
   margin-bottom: 1rem;
+  font-size: 0.9rem;
 `;
 
 const ErrorMessage = styled.div`
   background: rgba(239, 68, 68, 0.1);
-  border: 1px solid #ef4444;
-  color: #ef4444;
+  border: 1px solid ${props => props.theme.colors.danger};
+  color: ${props => props.theme.colors.danger};
   padding: 0.75rem;
-  border-radius: ${(props) => props.theme.borderRadius.md};
+  border-radius: ${props => props.theme.borderRadius.md};
   margin-bottom: 1rem;
+  font-size: 0.9rem;
 `;
 
 const Settings: React.FC = () => {
@@ -247,15 +199,17 @@ const Settings: React.FC = () => {
   };
 
   return (
-    <SettingsContainer>
-      <PageHeader>
-        <PageTitle>Settings</PageTitle>
-        <PageSubtitle>Manage your account preferences and settings</PageSubtitle>
-      </PageHeader>
+    <div>
+      <HeaderSection>
+        <TitleSection>
+          <h1>Settings</h1>
+          <p>Manage your account preferences and settings</p>
+        </TitleSection>
+      </HeaderSection>
 
       <SettingsGrid>
         {/* Profile Settings */}
-        <SettingCard>
+        <Card>
           <SettingHeader>
             <SettingIcon>
               <FaUser />
@@ -267,28 +221,28 @@ const Settings: React.FC = () => {
           </SettingDescription>
           <SettingRow>
             <div>
-              <SettingLabel>Username</SettingLabel>
+              <SettingLabel style={{ marginBottom: 0 }}>Username</SettingLabel>
               <InfoText>{state.user?.username}</InfoText>
             </div>
           </SettingRow>
           <SettingRow>
             <div>
-              <SettingLabel>Email</SettingLabel>
+              <SettingLabel style={{ marginBottom: 0 }}>Email</SettingLabel>
               <InfoText>{state.user?.email}</InfoText>
             </div>
           </SettingRow>
           <SettingRow>
             <div>
-              <SettingLabel>Full Name</SettingLabel>
+              <SettingLabel style={{ marginBottom: 0 }}>Full Name</SettingLabel>
               <InfoText>
                 {state.user?.first_name} {state.user?.last_name}
               </InfoText>
             </div>
           </SettingRow>
-        </SettingCard>
+        </Card>
 
         {/* Security Settings */}
-        <SettingCard>
+        <Card>
           <SettingHeader>
             <SettingIcon>
               <FaLock />
@@ -330,12 +284,12 @@ const Settings: React.FC = () => {
                 required
               />
             </FormGroup>
-            <Button type="submit">Update Password</Button>
+            <Button type="submit" variant="primary">Update Password</Button>
           </form>
-        </SettingCard>
+        </Card>
 
         {/* Appearance */}
-        <SettingCard>
+        <Card>
           <SettingHeader>
             <SettingIcon>
               <FaPalette />
@@ -346,17 +300,17 @@ const Settings: React.FC = () => {
             Customize how Finance Tracker looks
           </SettingDescription>
           <SettingRow>
-            <SettingLabel>Theme</SettingLabel>
+            <SettingLabel style={{ marginBottom: 0 }}>Theme</SettingLabel>
             <InfoText>Dark Mode (Active)</InfoText>
           </SettingRow>
           <SettingRow>
-            <SettingLabel>Currency</SettingLabel>
+            <SettingLabel style={{ marginBottom: 0 }}>Currency</SettingLabel>
             <InfoText>USD ($)</InfoText>
           </SettingRow>
-        </SettingCard>
+        </Card>
 
         {/* Data & Privacy */}
-        <SettingCard>
+        <Card>
           <SettingHeader>
             <SettingIcon>
               <FaShieldAlt />
@@ -367,16 +321,16 @@ const Settings: React.FC = () => {
             Manage your data and privacy settings
           </SettingDescription>
           <SettingRow>
-            <SettingLabel>Export Data</SettingLabel>
-            <Button onClick={handleExportData}>
+            <SettingLabel style={{ marginBottom: 0 }}>Export Data</SettingLabel>
+            <Button onClick={handleExportData} variant="secondary" size="sm">
               <FaDownload style={{ marginRight: '0.5rem' }} />
               Export
             </Button>
           </SettingRow>
-        </SettingCard>
+        </Card>
 
         {/* Delete Account */}
-        <SettingCard>
+        <Card>
           <SettingHeader>
             <SettingIcon style={{ color: '#ef4444' }}>
               <FaShieldAlt />
@@ -397,16 +351,16 @@ const Settings: React.FC = () => {
               onChange={(e) => setDeletePassword(e.target.value)}
               placeholder="Enter password"
             />
-            <InfoText>
+            <InfoText style={{ marginTop: '0.5rem', color: '#ef4444' }}>
               Warning: This action cannot be undone. All your data will be permanently deleted.
             </InfoText>
           </FormGroup>
-          <DangerButton onClick={handleDeleteAccount}>
+          <Button onClick={handleDeleteAccount} variant="danger">
             Delete Account
-          </DangerButton>
-        </SettingCard>
+          </Button>
+        </Card>
       </SettingsGrid>
-    </SettingsContainer>
+    </div>
   );
 };
 

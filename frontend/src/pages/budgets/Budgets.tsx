@@ -3,153 +3,133 @@ import styled from 'styled-components';
 import { FaPlus, FaEdit, FaTrash } from 'react-icons/fa';
 import { budgetAPI, transactionAPI } from '../../services/api';
 import BudgetForm from '../../components/BudgetForm';
+import { Card } from '../../components/ui/Card';
+import { Button, IconButton } from '../../components/ui/Button';
 
-const BudgetsContainer = styled.div`
-  padding: 2rem;
-  background-color: ${(props) => props.theme.colors.background};
-  min-height: 100vh;
-  padding-left: 5rem;
-  
-  @media (max-width: ${(props) => props.theme.breakpoints.md}) {
-    padding: 1rem;
-    padding-left: 5rem;
-  }
-`;
-
-const PageHeader = styled.div`
+const HeaderSection = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 2rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+
+  @media (max-width: ${props => props.theme.breakpoints.sm}) {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+
+    & > button {
+      width: 100%;
+    }
+  }
 `;
 
-const PageTitle = styled.h1`
-  font-size: ${(props) => props.theme.fontSize['2xl']};
-  color: ${(props) => props.theme.colors.textPrimary};
-  font-weight: 600;
-`;
+const TitleSection = styled.div`
+  h1 {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+    background: ${props => props.theme.colors.gradients.primary};
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
 
-const Button = styled.button`
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1.25rem;
-  background: linear-gradient(90deg, ${(props) => props.theme.colors.primary}, ${(props) => props.theme.colors.primaryDark});
-  color: white;
-  border: none;
-  border-radius: ${(props) => props.theme.borderRadius.md};
-  font-size: ${(props) => props.theme.fontSize.md};
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-
-  &:hover {
-    opacity: 0.9;
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(59, 130, 246, 0.3);
+    @media (max-width: ${props => props.theme.breakpoints.sm}) {
+      font-size: 1.75rem;
+      text-align: center;
+      margin-bottom: 0;
+    }
   }
 `;
 
 const BudgetGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   gap: 1.5rem;
-  
-  @media (max-width: ${(props) => props.theme.breakpoints.md}) {
-    grid-template-columns: 1fr;
-  }
 `;
 
-const BudgetCard = styled.div`
-  background: ${(props) => props.theme.colors.surface};
-  border-radius: ${(props) => props.theme.borderRadius.lg};
-  padding: 1.5rem;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  border: 1px solid ${(props) => props.theme.colors.border};
-  position: relative;
+const BudgetCardContent = styled.div`
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 `;
 
 const CategoryName = styled.h3`
-  font-size: ${(props) => props.theme.fontSize.lg};
-  color: ${(props) => props.theme.colors.textPrimary};
-  margin-bottom: 1rem;
+  font-size: 1.2rem;
+  color: ${props => props.theme.colors.textPrimary};
+  margin-bottom: 1.5rem;
   font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 `;
 
 const BudgetInfo = styled.div`
-  margin: 1rem 0;
+  margin-bottom: 1rem;
 `;
 
 const BudgetLabel = styled.div`
-  font-size: ${(props) => props.theme.fontSize.sm};
-  color: ${(props) => props.theme.colors.textSecondary};
-  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+  color: ${props => props.theme.colors.textSecondary};
+  margin-bottom: 0.25rem;
 `;
 
 const BudgetAmount = styled.div`
-  font-size: ${(props) => props.theme.fontSize.xl};
-  color: ${(props) => props.theme.colors.textPrimary};
+  font-size: 1.5rem;
+  color: ${props => props.theme.colors.textPrimary};
   font-weight: 700;
 `;
 
-const ProgressBar = styled.div`
+const ProgressBarContainer = styled.div`
   width: 100%;
-  height: 8px;
-  background: ${(props) => props.theme.colors.background};
-  border-radius: 4px;
+  height: 12px;
+  background: ${props => props.theme.colors.background};
+  border-radius: 6px;
   overflow: hidden;
-  margin: 1rem 0;
+  margin: 1.5rem 0;
+  box-shadow: ${props => props.theme.shadows.neumorphicInset};
 `;
 
 const Progress = styled.div<{ $percentage: number }>`
   height: 100%;
-  width: ${(props) => Math.min(props.$percentage, 100)}%;
-  background: ${(props) => 
-    props.$percentage > 100 
-      ? props.theme.colors.danger 
-      : props.$percentage > 80 
-        ? props.theme.colors.warning 
+  width: ${props => Math.min(props.$percentage, 100)}%;
+  background: ${props =>
+    props.$percentage > 100
+      ? props.theme.colors.danger
+      : props.$percentage > 80
+        ? props.theme.colors.warning
         : props.theme.colors.success
   };
-  transition: width 0.3s ease;
+  transition: width 0.5s ease;
+  border-radius: 6px;
 `;
 
 const SpentInfo = styled.div<{ $overBudget: boolean }>`
-  font-size: ${(props) => props.theme.fontSize.sm};
-  color: ${(props) => props.$overBudget ? props.theme.colors.danger : props.theme.colors.textTertiary};
-  font-weight: ${(props) => props.$overBudget ? '600' : '400'};
+  font-size: 0.9rem;
+  color: ${props => props.$overBudget ? props.theme.colors.danger : props.theme.colors.textTertiary};
+  font-weight: ${props => props.$overBudget ? '600' : '400'};
+  margin-bottom: 1.5rem;
+  flex: 1;
 `;
 
-const Actions = styled.div`
+const ActionButtons = styled.div`
   display: flex;
-  gap: 0.5rem;
-  margin-top: 1rem;
+  justify-content: flex-end;
+  gap: 0.75rem;
   padding-top: 1rem;
-  border-top: 1px solid ${(props) => props.theme.colors.border};
-`;
-
-const ActionButton = styled.button`
-  background: none;
-  border: none;
-  color: ${(props) => props.theme.colors.textTertiary};
-  cursor: pointer;
-  padding: 0.5rem;
-  border-radius: ${(props) => props.theme.borderRadius.sm};
-  transition: color 0.2s ease;
-
-  &:hover {
-    color: ${(props) => props.theme.colors.primary};
-  }
-
-  &.delete:hover {
-    color: ${(props) => props.theme.colors.danger};
-  }
+  border-top: 1px solid ${props => props.theme.colors.border};
 `;
 
 const EmptyState = styled.div`
   text-align: center;
   padding: 4rem 2rem;
-  color: ${(props) => props.theme.colors.textSecondary};
+  color: ${props => props.theme.colors.textSecondary};
+  
+  h2 {
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+    color: ${props => props.theme.colors.textPrimary};
+  }
 `;
 
 const Budgets: React.FC = () => {
@@ -190,7 +170,7 @@ const Budgets: React.FC = () => {
         );
       })
       .reduce((sum: number, t: any) => sum + parseFloat(t.amount), 0);
-    
+
     return spent;
   };
 
@@ -211,7 +191,7 @@ const Budgets: React.FC = () => {
       } else {
         await budgetAPI.createBudget(data);
       }
-      
+
       await fetchBudgets();
       setIsFormOpen(false);
       setEditingBudget(null);
@@ -235,26 +215,26 @@ const Budgets: React.FC = () => {
 
   if (loading) {
     return (
-      <BudgetsContainer>
-        <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-secondary)' }}>
-          Loading budgets...
-        </div>
-      </BudgetsContainer>
+      <div style={{ padding: '2rem', textAlign: 'center', color: '#94a3b8' }}>
+        Loading budgets...
+      </div>
     );
   }
 
   return (
-    <BudgetsContainer>
-      <PageHeader>
-        <PageTitle>Budgets</PageTitle>
-        <Button onClick={handleAddBudget}>
+    <div>
+      <HeaderSection>
+        <TitleSection>
+          <h1>Budgets</h1>
+        </TitleSection>
+        <Button variant="primary" onClick={handleAddBudget}>
           <FaPlus /> Add Budget
         </Button>
-      </PageHeader>
+      </HeaderSection>
 
       {budgets.length === 0 ? (
         <EmptyState>
-          <h2 style={{ marginBottom: '1rem' }}>No Budgets Yet</h2>
+          <h2>No Budgets Yet</h2>
           <p>Create your first budget to start tracking your spending limits</p>
         </EmptyState>
       ) : (
@@ -266,36 +246,44 @@ const Budgets: React.FC = () => {
             const overBudget = spent > budgetAmount;
 
             return (
-              <BudgetCard key={budget.budget_id}>
-                <CategoryName>
-                  {budget.category?.icon} {budget.category?.category_name || 'Unknown Category'}
-                </CategoryName>
-                <BudgetInfo>
-                  <BudgetLabel>Budget Amount</BudgetLabel>
-                  <BudgetAmount>${budgetAmount.toFixed(2)}</BudgetAmount>
-                </BudgetInfo>
-                <BudgetInfo>
-                  <BudgetLabel>Period</BudgetLabel>
-                  <div style={{ color: 'var(--text-primary)' }}>
-                    {new Date(budget.year, budget.month - 1).toLocaleString('default', { month: 'long' })} {budget.year}
+              <Card key={budget.budget_id}>
+                <BudgetCardContent>
+                  <CategoryName>
+                    {budget.category?.icon} {budget.category?.category_name || 'Unknown Category'}
+                  </CategoryName>
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <BudgetInfo>
+                      <BudgetLabel>Budget</BudgetLabel>
+                      <BudgetAmount>${budgetAmount.toFixed(2)}</BudgetAmount>
+                    </BudgetInfo>
+                    <BudgetInfo style={{ textAlign: 'right' }}>
+                      <BudgetLabel>Period</BudgetLabel>
+                      <div style={{ color: '#ecf0f3', fontWeight: 500 }}>
+                        {new Date(budget.year, budget.month - 1).toLocaleString('default', { month: 'long' })} {budget.year}
+                      </div>
+                    </BudgetInfo>
                   </div>
-                </BudgetInfo>
-                <ProgressBar>
-                  <Progress $percentage={percentage} />
-                </ProgressBar>
-                <SpentInfo $overBudget={overBudget}>
-                  ${spent.toFixed(2)} of ${budgetAmount.toFixed(2)} spent
-                  {overBudget && ` (Over by $${(spent - budgetAmount).toFixed(2)})`}
-                </SpentInfo>
-                <Actions>
-                  <ActionButton onClick={() => handleEditBudget(budget)}>
-                    <FaEdit />
-                  </ActionButton>
-                  <ActionButton className="delete" onClick={() => handleDeleteBudget(budget.budget_id)}>
-                    <FaTrash />
-                  </ActionButton>
-                </Actions>
-              </BudgetCard>
+
+                  <ProgressBarContainer>
+                    <Progress $percentage={percentage} />
+                  </ProgressBarContainer>
+
+                  <SpentInfo $overBudget={overBudget}>
+                    ${spent.toFixed(2)} of ${budgetAmount.toFixed(2)} spent
+                    {overBudget && ` (Over by $${(spent - budgetAmount).toFixed(2)})`}
+                  </SpentInfo>
+
+                  <ActionButtons>
+                    <IconButton size="sm" onClick={() => handleEditBudget(budget)}>
+                      <FaEdit />
+                    </IconButton>
+                    <IconButton size="sm" variant="danger" onClick={() => handleDeleteBudget(budget.budget_id)}>
+                      <FaTrash />
+                    </IconButton>
+                  </ActionButtons>
+                </BudgetCardContent>
+              </Card>
             );
           })}
         </BudgetGrid>
@@ -307,7 +295,7 @@ const Budgets: React.FC = () => {
         onSubmit={handleFormSubmit}
         initialData={editingBudget}
       />
-    </BudgetsContainer>
+    </div>
   );
 };
 

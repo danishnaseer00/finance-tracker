@@ -1,193 +1,151 @@
-import React, { useState } from 'react';
+import React from 'react';
 import styled from 'styled-components';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { FaWallet, FaChartLine, FaExchangeAlt, FaList, FaCog, FaSignOutAlt, FaBars, FaTimes } from 'react-icons/fa';
+import { FaWallet, FaChartLine, FaExchangeAlt, FaList, FaCog, FaSignOutAlt, FaTimes, FaBars } from 'react-icons/fa';
 import { useAuth } from '../../context/AuthContext';
-import { darkTheme } from '../../themes/GlobalStyle';
 
 const SidebarContainer = styled.div<{ $isOpen: boolean }>`
   position: fixed;
   top: 0;
-  left: ${(props) => (props.$isOpen ? '0' : '-250px')};
+  left: ${(props) => (props.$isOpen ? '0' : '-280px')};
   height: 100vh;
-  width: 250px;
-  background: ${(props) => props.theme.colors.surface};
-  border-right: 1px solid ${(props) => props.theme.colors.border};
-  transition: left 0.3s ease;
+  width: 280px;
+  background: ${(props) => props.theme.colors.background};
+  box-shadow: ${(props) => props.$isOpen ? props.theme.shadows.neumorphic : 'none'};
+  transition: all 0.3s ease;
   z-index: 1000;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
-
+  padding: 1.5rem;
+  
   @media (max-width: ${(props) => props.theme.breakpoints.md}) {
-    left: ${(props) => (props.$isOpen ? '0' : '-250px')};
+    width: 260px;
+    left: ${(props) => (props.$isOpen ? '0' : '-260px')};
   }
 `;
 
-const TopSection = styled.div`
-  padding: 1.5rem 1rem;
-  border-bottom: 1px solid ${(props) => props.theme.colors.border};
+const Logo = styled.div`
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  min-height: 70px;
-`;
-
-const Logo = styled.div<{ $isOpen: boolean }>`
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  color: ${(props) => props.theme.colors.textPrimary};
-  overflow: hidden;
+  gap: 1rem;
+  color: ${(props) => props.theme.colors.primary};
+  margin-bottom: 2rem;
+  padding: 0 0.5rem;
   
   svg {
-    min-width: 24px;
-    flex-shrink: 0;
+    font-size: 1.5rem;
+    filter: drop-shadow(0 0 5px ${(props) => props.theme.colors.primary}80);
   }
   
   h1 {
-    font-size: ${(props) => props.theme.fontSize.lg};
+    font-size: 1.5rem;
     font-weight: 700;
-    white-space: nowrap;
-    opacity: ${(props) => (props.$isOpen ? 1 : 0)};
-    transition: opacity 0.3s ease;
-    display: ${(props) => (props.$isOpen ? 'block' : 'none')};
-  }
-`;
-
-const ToggleButton = styled.button<{ $isOpen: boolean }>`
-  position: absolute;
-  top: 15px;
-  left: ${(props) => (props.$isOpen ? '260px' : '20px')};
-  background: ${(props) => props.theme.colors.primary};
-  border: none;
-  color: white;
-  font-size: ${(props) => props.theme.fontSize.md};
-  cursor: pointer;
-  padding: 0.5rem;
-  width: 35px;
-  height: 35px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: ${(props) => props.theme.borderRadius.md};
-  z-index: 1002;
-  transition: left 0.3s ease;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-
-  &:hover {
-    background: ${(props) => props.theme.colors.primaryDark};
-  }
-
-  &:active {
-    transform: scale(0.95);
-  }
-  
-  @media (max-width: ${(props) => props.theme.breakpoints.md}) {
-    left: ${(props) => (props.$isOpen ? '260px' : '15px')};
-    top: 15px;
+    color: ${(props) => props.theme.colors.textPrimary};
+    letter-spacing: 1px;
   }
 `;
 
 const NavMenu = styled.nav`
   flex: 1;
-  padding: 1.5rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
   overflow-y: auto;
+  padding-right: 0.5rem; /* For scrollbar */
 `;
 
-const NavItem = styled(Link)<{ $isActive: boolean; $isOpen?: boolean }>`
+const NavItem = styled(Link) <{ $isActive: boolean }>`
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.75rem 1.5rem;
-  color: ${(props) => 
-    props.$isActive 
-      ? props.theme.colors.primary 
+  gap: 1rem;
+  padding: 1rem 1.5rem;
+  color: ${(props) =>
+    props.$isActive
+      ? props.theme.colors.primary
       : props.theme.colors.textSecondary
   };
   text-decoration: none;
   transition: all 0.2s ease;
-  margin: 0.25rem 0.75rem;
-  border-radius: ${(props) => props.theme.borderRadius.md};
-  white-space: nowrap;
+  border-radius: ${(props) => props.theme.borderRadius.lg};
+  
+  background: ${(props) => props.$isActive ? props.theme.colors.background : 'transparent'};
+  box-shadow: ${(props) => props.$isActive ? props.theme.shadows.neumorphicInset : 'none'};
   
   svg {
-    min-width: 20px;
-    flex-shrink: 0;
+    font-size: 1.2rem;
   }
   
   span {
-    opacity: ${(props) => (props.$isOpen ? 1 : 0)};
-    transition: opacity 0.3s ease;
-    display: ${(props) => (props.$isOpen ? 'inline' : 'none')};
+    font-weight: ${(props) => props.$isActive ? '600' : '500'};
   }
   
   &:hover {
-    background: ${(props) => props.theme.colors.background};
     color: ${(props) => props.theme.colors.primary};
+    transform: ${(props) => props.$isActive ? 'none' : 'translateX(5px)'};
   }
-  
-  ${(props) => props.$isActive && `
-    background: rgba(59, 130, 246, 0.1);
-    font-weight: 600;
-  `}
 `;
 
-const BottomSection = styled.div`
-  padding: 1rem;
-  border-top: 1px solid ${(props) => props.theme.colors.border};
-`;
-
-const UserSection = styled.div<{ $isOpen: boolean }>`
+const UserSection = styled.div`
+  margin-top: auto;
+  padding: 1.5rem;
+  border-radius: ${(props) => props.theme.borderRadius.xl};
+  background: ${(props) => props.theme.colors.background};
+  box-shadow: ${(props) => props.theme.shadows.neumorphic};
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.75rem;
-  border-radius: ${(props) => props.theme.borderRadius.md};
-  background: ${(props) => props.theme.colors.background};
-  margin-bottom: 1rem;
-  overflow: hidden;
+  gap: 1rem;
 `;
 
 const UserAvatar = styled.div`
-  min-width: 40px;
-  width: 40px;
-  height: 40px;
+  width: 45px;
+  height: 45px;
   border-radius: 50%;
-  background: ${(props) => props.theme.colors.primary};
+  background: ${(props) => props.theme.colors.background};
+  box-shadow: ${(props) => props.theme.shadows.neumorphic};
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  color: ${(props) => props.theme.colors.primary};
   font-weight: bold;
-  font-size: ${(props) => props.theme.fontSize.sm};
-  flex-shrink: 0;
+  font-size: 1.1rem;
 `;
 
-const UserInfo = styled.div<{ $isOpen: boolean }>`
-  overflow: hidden;
+const UserInfo = styled.div`
   flex: 1;
+  overflow: hidden;
   
   div:first-child {
     font-weight: 600;
     color: ${(props) => props.theme.colors.textPrimary};
-    font-size: ${(props) => props.theme.fontSize.sm};
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
   
   div:last-child {
-    font-size: ${(props) => props.theme.fontSize.xs};
-    color: ${(props) => props.theme.colors.textTertiary};
+    font-size: 0.8rem;
+    color: ${(props) => props.theme.colors.textSecondary};
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
+`;
+
+const LogoutButton = styled.button`
+  background: transparent;
+  color: ${(props) => props.theme.colors.danger};
+  padding: 0.5rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
   
-  opacity: ${(props) => (props.$isOpen ? 1 : 0)};
-  display: ${(props) => (props.$isOpen ? 'block' : 'none')};
-  transition: opacity 0.3s ease;
+  &:hover {
+    background: ${(props) => props.theme.colors.background};
+    box-shadow: ${(props) => props.theme.shadows.neumorphic};
+    transform: scale(1.1);
+  }
 `;
 
 const MobileOverlay = styled.div<{ $isOpen: boolean }>`
@@ -200,8 +158,41 @@ const MobileOverlay = styled.div<{ $isOpen: boolean }>`
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(3px);
     z-index: 999;
+  }
+`;
+
+const ToggleButton = styled.button`
+  position: fixed;
+  top: 1.5rem;
+  left: 1.5rem;
+  z-index: 1100;
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  background: ${(props) => props.theme.colors.background};
+  box-shadow: ${(props) => props.theme.shadows.neumorphic};
+  color: ${(props) => props.theme.colors.textPrimary};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  transition: all 0.3s ease;
+  
+  &:hover {
+    color: ${(props) => props.theme.colors.primary};
+    transform: scale(1.05);
+  }
+  
+  &:active {
+    box-shadow: ${(props) => props.theme.shadows.neumorphicInset};
+    transform: scale(0.95);
+  }
+
+  @media (min-width: ${(props) => props.theme.breakpoints.md}) {
+    display: none; /* Hide on desktop as sidebar is always visible there usually, but for now let's keep it controlled by layout */
   }
 `;
 
@@ -214,132 +205,77 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setOpen }) => {
   const { state, logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
-  
-  const toggleSidebar = () => {
-    setOpen(!isOpen);
-  };
 
-  const userInitials = state.user 
+  const userInitials = state.user
     ? `${state.user.first_name?.charAt(0) || ''}${state.user.last_name?.charAt(0) || ''}`.toUpperCase()
     : '?';
 
   const handleMenuItemClick = (path: string) => {
-    // Always close sidebar after clicking a menu item
-    setOpen(false);
-    
-    // Small delay to allow animation to complete before navigation
-    setTimeout(() => {
-      navigate(path);
-    }, 100);
+    if (window.innerWidth <= 768) {
+      setOpen(false);
+    }
+    navigate(path);
   };
 
   const handleLogout = () => {
-    setOpen(false);
     logout();
+    navigate('/login');
   };
 
   return (
     <>
-      <ToggleButton onClick={toggleSidebar} $isOpen={isOpen}>
-        {isOpen ? <FaTimes /> : <FaBars />}
-      </ToggleButton>
-      
       <MobileOverlay $isOpen={isOpen} onClick={() => setOpen(false)} />
+
+      {/* Mobile Toggle Button - Only visible on mobile when sidebar is closed */}
+      {!isOpen && (
+        <ToggleButton onClick={() => setOpen(true)}>
+          <FaBars />
+        </ToggleButton>
+      )}
+
       <SidebarContainer $isOpen={isOpen}>
-        <TopSection>
-          <Logo $isOpen={isOpen}>
-            <FaWallet style={{ color: darkTheme.colors.primary }} />
-            {isOpen && <h1>Fintrack</h1>}
-          </Logo>
-        </TopSection>
-        
+        <Logo>
+          <FaWallet />
+          <h1>Fintrack</h1>
+          {/* Close button for mobile inside sidebar */}
+          <div style={{ marginLeft: 'auto', cursor: 'pointer', display: window.innerWidth <= 768 ? 'block' : 'none' }} onClick={() => setOpen(false)}>
+            <FaTimes />
+          </div>
+        </Logo>
+
         <NavMenu>
-          <NavItem 
-            to="/dashboard" 
-            $isActive={location.pathname === '/dashboard'}
-            $isOpen={isOpen}
-            onClick={(e) => {
-              e.preventDefault();
-              handleMenuItemClick('/dashboard');
-            }}
-          >
-            <FaChartLine />
-            <span>Dashboard</span>
-          </NavItem>
-          <NavItem 
-            to="/accounts" 
-            $isActive={location.pathname === '/accounts'}
-            $isOpen={isOpen}
-            onClick={(e) => {
-              e.preventDefault();
-              handleMenuItemClick('/accounts');
-            }}
-          >
-            <FaWallet />
-            <span>Accounts</span>
-          </NavItem>
-          <NavItem 
-            to="/transactions" 
-            $isActive={location.pathname === '/transactions'}
-            $isOpen={isOpen}
-            onClick={(e) => {
-              e.preventDefault();
-              handleMenuItemClick('/transactions');
-            }}
-          >
-            <FaExchangeAlt />
-            <span>Transactions</span>
-          </NavItem>
-          <NavItem 
-            to="/budgets" 
-            $isActive={location.pathname === '/budgets'}
-            $isOpen={isOpen}
-            onClick={(e) => {
-              e.preventDefault();
-              handleMenuItemClick('/budgets');
-            }}
-          >
-            <FaList />
-            <span>Budgets</span>
-          </NavItem>
-          <NavItem 
-            to="/settings" 
-            $isActive={location.pathname === '/settings'}
-            $isOpen={isOpen}
-            onClick={(e) => {
-              e.preventDefault();
-              handleMenuItemClick('/settings');
-            }}
-          >
-            <FaCog />
-            <span>Settings</span>
-          </NavItem>
+          {[
+            { path: '/dashboard', icon: FaChartLine, label: 'Dashboard' },
+            { path: '/accounts', icon: FaWallet, label: 'Accounts' },
+            { path: '/transactions', icon: FaExchangeAlt, label: 'Transactions' },
+            { path: '/budgets', icon: FaList, label: 'Budgets' },
+            { path: '/settings', icon: FaCog, label: 'Settings' },
+          ].map((item) => (
+            <NavItem
+              key={item.path}
+              to={item.path}
+              $isActive={location.pathname === item.path}
+              onClick={(e) => {
+                e.preventDefault();
+                handleMenuItemClick(item.path);
+              }}
+            >
+              <item.icon />
+              <span>{item.label}</span>
+            </NavItem>
+          ))}
         </NavMenu>
-        
-        <BottomSection>
-          <UserSection $isOpen={isOpen}>
-            <UserAvatar>{userInitials}</UserAvatar>
-            {isOpen && (
-              <UserInfo $isOpen={isOpen}>
-                <div>{state.user?.first_name || state.user?.username}</div>
-                <div>{state.user?.email}</div>
-              </UserInfo>
-            )}
-          </UserSection>
-          
-          <NavItem 
-            to="#" 
-            $isActive={false}
-            $isOpen={isOpen}
-            onClick={(e) => {
-              e.preventDefault();
-              handleLogout();
-            }}
-          >
+
+        <UserSection>
+          <UserAvatar>{userInitials}</UserAvatar>
+          <UserInfo>
+            <div>{state.user?.first_name || state.user?.username}</div>
+            <div>{state.user?.email}</div>
+          </UserInfo>
+          <LogoutButton onClick={handleLogout} title="Logout">
             <FaSignOutAlt />
-            <span>Logout</span>
-          </NavItem>
-        </BottomSection>
+          </LogoutButton>
+        </UserSection>
       </SidebarContainer>
     </>
   );

@@ -1,372 +1,430 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { useAuth } from '../context/AuthContext';
-import { FaWallet, FaArrowUp, FaArrowDown, FaChartPie, FaCreditCard, FaPlus } from 'react-icons/fa';
+import { FaWallet, FaArrowUp, FaArrowDown, FaChartLine, FaPlus } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
-import BarChartComponent from '../components/charts/BarChartComponent';
-import PieChartComponent from '../components/charts/PieChartComponent';
-import LineChartComponent from '../components/charts/LineChartComponent';
-import { transactionAPI, accountAPI } from '../services/api';
+import { Line, Pie } from 'react-chartjs-2';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler,
+  ArcElement,
+  BarElement,
+} from 'chart.js';
+import { accountAPI, transactionAPI } from '../services/api';
+import { Card, CardHeader, CardBody } from '../components/ui/Card';
+import { Button } from '../components/ui/Button';
+import { useAuth } from '../context/AuthContext';
+
+// Register ChartJS components
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler,
+  ArcElement,
+  BarElement
+);
 
 const DashboardContainer = styled.div`
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
-  background-color: ${(props) => props.theme.colors.background};
-  width: 100%;
+  gap: 2rem;
 `;
 
-const PageHeader = styled.header`
+const WelcomeSection = styled.div`
+  margin-bottom: 1rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1.5rem 2rem;
-  padding-left: 5.5rem;
-  background: ${(props) => props.theme.colors.surface};
-  border-bottom: 1px solid ${(props) => props.theme.colors.border};
-  
-  @media (max-width: ${(props) => props.theme.breakpoints.md}) {
-    flex-direction: column;
-    gap: 1rem;
-    align-items: flex-start;
-    padding-left: 5.5rem;
+  gap: 1rem;
+
+  h1 {
+    font-size: 2.5rem;
+    margin-bottom: 0;
+    background: ${props => props.theme.colors.gradients.primary};
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    
+    @media (max-width: ${props => props.theme.breakpoints.sm}) {
+      font-size: 1.75rem;
+    }
+  }
+
+  p {
+    color: ${props => props.theme.colors.textSecondary};
+    font-size: 1.1rem;
+    margin-top: 0.5rem;
+
+    @media (max-width: ${props => props.theme.breakpoints.sm}) {
+      display: none;
+    }
   }
 `;
 
-const HeaderTitle = styled.h1`
-  font-size: ${(props) => props.theme.fontSize.xl};
-  font-weight: 600;
-  color: ${(props) => props.theme.colors.textPrimary};
+const StatsGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
 `;
 
-const UserSection = styled.div`
+const StatCard = styled(Card)`
+  position: relative;
+  overflow: hidden;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 4px;
+    background: ${props => props.theme.colors.gradients.primary};
+  }
+`;
+
+const StatHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+`;
+
+const IconWrapper = styled.div<{ color: string }>`
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  color: ${props => props.color};
+  background: ${props => props.theme.colors.background};
+  box-shadow: ${props => props.theme.shadows.neumorphicInset};
+`;
+
+const StatValue = styled.div`
+  font-size: 2rem;
+  font-weight: 700;
+  color: ${props => props.theme.colors.textPrimary};
+  margin-bottom: 0.5rem;
+`;
+
+const StatLabel = styled.div`
+  color: ${props => props.theme.colors.textSecondary};
+  font-size: 0.9rem;
+`;
+
+const ChartsGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+`;
+
+const TransactionList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+`;
+
+const TransactionItem = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  border-bottom: 1px solid ${props => props.theme.colors.border};
+  
+  &:last-child {
+    border-bottom: none;
+  }
+`;
+
+const TransactionInfo = styled.div`
   display: flex;
   align-items: center;
   gap: 1rem;
-  
-  @media (max-width: ${(props) => props.theme.breakpoints.md}) {
-    align-self: flex-end;
-  }
 `;
 
-const UserAvatar = styled.div`
+const TransactionIcon = styled.div<{ type: string }>`
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: ${(props) => props.theme.colors.primary};
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
-  font-weight: bold;
-  text-transform: uppercase;
+  color: ${props => props.type === 'income' ? props.theme.colors.success : props.theme.colors.danger};
+  background: ${props => props.theme.colors.background};
+  box-shadow: ${props => props.theme.shadows.neumorphic};
 `;
 
-const SummarySection = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 1.5rem;
-  padding: 2rem;
-  
-  @media (max-width: ${(props) => props.theme.breakpoints.md}) {
-    grid-template-columns: 1fr;
-    padding: 1rem;
-  }
-`;
-
-const Card = styled.div`
-  background: ${(props) => props.theme.colors.surface};
-  border-radius: ${(props) => props.theme.borderRadius.lg};
-  padding: 1.5rem;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  border: 1px solid ${(props) => props.theme.colors.border};
-`;
-
-const CardHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1rem;
-`;
-
-const CardTitle = styled.h3`
-  font-size: ${(props) => props.theme.fontSize.lg};
-  color: ${(props) => props.theme.colors.textSecondary};
-  font-weight: 500;
-`;
-
-const CardValue = styled.div`
-  font-size: ${(props) => props.theme.fontSize['3xl']};
-  font-weight: 700;
-  color: ${(props) => props.theme.colors.textPrimary};
-  margin: 0.5rem 0;
-`;
-
-const CardSubtitle = styled.div`
-  color: ${(props) => props.theme.colors.textTertiary};
-  font-size: ${(props) => props.theme.fontSize.sm};
-`;
-
-const MainContent = styled.main`
-  padding: 0 2rem 2rem;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-  gap: 1.5rem;
-  flex: 1;
-  
-  @media (max-width: ${(props) => props.theme.breakpoints.lg}) {
-    grid-template-columns: 1fr;
-    padding: 0 1rem 1rem;
-  }
-`;
-
-const SummaryCard = styled(Card)`
+const TransactionDetails = styled.div`
   display: flex;
   flex-direction: column;
+  
+  span:first-child {
+    color: ${props => props.theme.colors.textPrimary};
+    font-weight: 500;
+  }
+  
+  span:last-child {
+    color: ${props => props.theme.colors.textTertiary};
+    font-size: 0.85rem;
+  }
 `;
 
-const SummaryIcon = styled.div`
-  width: 50px;
-  height: 50px;
-  border-radius: ${(props) => props.theme.borderRadius.md};
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 1rem;
-  font-size: ${(props) => props.theme.fontSize.xl};
-
-  &.balance {
-    background: rgba(59, 130, 246, 0.1);
-    color: ${(props) => props.theme.colors.primary};
-  }
-
-  &.income {
-    background: rgba(16, 185, 129, 0.1);
-    color: ${(props) => props.theme.colors.success};
-  }
-
-  &.expense {
-    background: rgba(239, 68, 68, 0.1);
-    color: ${(props) => props.theme.colors.danger};
-  }
-
-  &.transactions {
-    background: rgba(139, 92, 246, 0.1);
-    color: ${(props) => props.theme.colors.secondary};
-  }
+const TransactionAmount = styled.div<{ type: string }>`
+  font-weight: 600;
+  color: ${props => props.type === 'income' ? props.theme.colors.success : props.theme.colors.textPrimary};
 `;
 
 const Dashboard: React.FC = () => {
   const { state } = useAuth();
-  const [dashboardData, setDashboardData] = useState({
-    totalBalance: 0,
-    totalIncome: 0,
-    totalExpense: 0,
-    recentTransactions: [],
-  });
-  const [expensesByCategory, setExpensesByCategory] = useState<{name: string; value: number}[]>([]);
-  const [monthlyTrends, setMonthlyTrends] = useState<any[]>([]);
-
-  const fetchDashboardData = async () => {
-  try {
-    const transactionsResponse = await transactionAPI.getTransactions();
-    const accountsResponse = await accountAPI.getAccounts();
-    
-    const transactions = transactionsResponse.data;
-    const accounts = accountsResponse.data;
-    
-    // Calculate total balance from actual account balances
-    const totalBalance = accounts.reduce((sum: number, account: any) => 
-      sum + parseFloat(account.balance || 0), 0
-    );
-    
-    const totalIncome = transactions
-      .filter((t: any) => t.transaction_type === 'income')
-      .reduce((sum: number, t: any) => sum + parseFloat(t.amount), 0);
-    
-    const totalExpense = transactions
-      .filter((t: any) => t.transaction_type === 'expense')
-      .reduce((sum: number, t: any) => sum + parseFloat(t.amount), 0);
-
-    setDashboardData({
-      totalBalance,
-      totalIncome,
-      totalExpense,
-      recentTransactions: transactions.slice(0, 5),
-    });
-
-    // Expenses by category for charts
-    const categoryMap: Record<string, number> = {};
-    transactions
-      .filter((t: any) => t.transaction_type === 'expense')
-      .forEach((t: any) => {
-        const category = t.category?.category_name || 'Uncategorized';
-        categoryMap[category] = (categoryMap[category] || 0) + parseFloat(t.amount);
-      });
-
-    const expensesData = Object.entries(categoryMap).map(([name, value]) => ({
-      name,
-      value,
-    }));
-
-    setExpensesByCategory(expensesData);
-
-    // Calculate monthly trends from actual transactions
-    const currentYear = new Date().getFullYear();
-    const monthlyData: Record<string, { income: number; expenses: number }> = {};
-
-    // Initialize last 6 months
-    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    const now = new Date();
-    for (let i = 5; i >= 0; i--) {
-      const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const monthKey = `${monthNames[date.getMonth()]}`;
-      monthlyData[monthKey] = { income: 0, expenses: 0 };
-    }
-
-    // Aggregate transactions by month
-    transactions.forEach((t: any) => {
-      const transactionDate = new Date(t.transaction_date);
-      if (transactionDate.getFullYear() === currentYear) {
-        const monthKey = monthNames[transactionDate.getMonth()];
-        if (monthlyData[monthKey]) {
-          const amount = parseFloat(t.amount);
-          if (t.transaction_type === 'income') {
-            monthlyData[monthKey].income += amount;
-          } else {
-            monthlyData[monthKey].expenses += amount;
-          }
-        }
-      }
-    });
-
-    // Convert to array format for chart
-    const trendsWithBalance = Object.entries(monthlyData).map(([name, data]) => ({
-      name,
-      income: data.income,
-      expenses: data.expenses,
-      balance: data.income - data.expenses,
-    }));
-
-    setMonthlyTrends(trendsWithBalance);
-
-  } catch (error) {
-    console.error('Error fetching dashboard data:', error);
-  }
-};
+  const [accounts, setAccounts] = useState<any[]>([]);
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchDashboardData();
+    const fetchData = async () => {
+      try {
+        const [accountsRes, transactionsRes] = await Promise.all([
+          accountAPI.getAccounts(),
+          transactionAPI.getTransactions()
+        ]);
+        setAccounts(accountsRes.data);
+        setTransactions(transactionsRes.data);
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
   }, []);
 
-  const userInitials = state.user 
-    ? `${state.user.first_name?.charAt(0) || ''}${state.user.last_name?.charAt(0) || ''}`.toUpperCase()
-    : '?';
+  const totalBalance = accounts.reduce((sum, acc) => sum + parseFloat(acc.balance), 0);
+  const recentTransactions = transactions.slice(0, 5);
+
+  const income = transactions
+    .filter(t => t.transaction_type === 'income')
+    .reduce((sum, t) => sum + parseFloat(t.amount), 0);
+
+  const expenses = transactions
+    .filter(t => t.transaction_type === 'expense')
+    .reduce((sum, t) => sum + parseFloat(t.amount), 0);
+
+  // Calculate expenses by category for Pie Chart
+  const expensesByCategory = transactions
+    .filter(t => t.transaction_type === 'expense')
+    .reduce((acc: any, t) => {
+      const category = t.category?.category_name || 'Uncategorized';
+      acc[category] = (acc[category] || 0) + parseFloat(t.amount);
+      return acc;
+    }, {});
+
+  const pieChartData = {
+    labels: Object.keys(expensesByCategory),
+    datasets: [
+      {
+        data: Object.values(expensesByCategory),
+        backgroundColor: [
+          '#FF6384',
+          '#36A2EB',
+          '#FFCE56',
+          '#4BC0C0',
+          '#9966FF',
+          '#FF9F40',
+        ],
+        borderWidth: 0,
+      },
+    ],
+  };
+
+  // Calculate monthly trends for Line Chart (Simplified for demo)
+  const monthlyTrends = {
+    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+    datasets: [
+      {
+        label: 'Income',
+        data: [1200, 1900, 3000, 5000, 2000, 3000],
+        borderColor: '#00ff9d',
+        backgroundColor: 'rgba(0, 255, 157, 0.1)',
+        fill: true,
+        tension: 0.4,
+      },
+      {
+        label: 'Expenses',
+        data: [1000, 1500, 2000, 4000, 1800, 2500],
+        borderColor: '#ff0055',
+        backgroundColor: 'rgba(255, 0, 85, 0.1)',
+        fill: true,
+        tension: 0.4,
+      },
+    ],
+  };
+
+  const chartOptions = {
+    responsive: true,
+    plugins: {
+      legend: {
+        position: 'top' as const,
+        labels: {
+          color: '#ecf0f3',
+        },
+      },
+      title: {
+        display: false,
+      },
+    },
+    scales: {
+      y: {
+        grid: {
+          color: 'rgba(255, 255, 255, 0.1)',
+        },
+        ticks: {
+          color: '#a0a5a9',
+        },
+      },
+      x: {
+        grid: {
+          display: false,
+        },
+        ticks: {
+          color: '#a0a5a9',
+        },
+      },
+    },
+  };
+
+  if (loading) {
+    return <div style={{ padding: '2rem', textAlign: 'center', color: '#94a3b8' }}>Loading dashboard...</div>;
+  }
 
   return (
     <DashboardContainer>
-      <PageHeader>
-        <HeaderTitle>Fintrack</HeaderTitle>
-        <UserSection>
-          <span>Welcome, {state.user?.first_name || state.user?.username}!</span>
-          <UserAvatar>{userInitials}</UserAvatar>
-        </UserSection>
-      </PageHeader>
+      <WelcomeSection>
+        <div>
+          <h1>Dashboard</h1>
+          <p>Welcome back, {state.user?.first_name || state.user?.username}!</p>
+        </div>
+        <Link to="/transactions">
+          <Button variant="primary">
+            <FaPlus /> Add Transaction
+          </Button>
+        </Link>
+      </WelcomeSection>
 
-      <SummarySection>
-        <SummaryCard>
-          <SummaryIcon className="balance">
-            <FaWallet />
-          </SummaryIcon>
-          <CardTitle>Total Balance</CardTitle>
-          <CardValue>${dashboardData.totalBalance.toFixed(2)}</CardValue>
-          <CardSubtitle>Current account balance</CardSubtitle>
-        </SummaryCard>
+      <StatsGrid>
+        <StatCard>
+          <StatHeader>
+            <IconWrapper color="#00d4ff">
+              <FaWallet />
+            </IconWrapper>
+          </StatHeader>
+          <StatValue>${totalBalance.toFixed(2)}</StatValue>
+          <StatLabel>Total Balance</StatLabel>
+        </StatCard>
 
-        <SummaryCard>
-          <SummaryIcon className="income">
-            <FaArrowUp />
-          </SummaryIcon>
-          <CardTitle>Total Income</CardTitle>
-          <CardValue style={{ color: '#10b981' }}>${dashboardData.totalIncome.toFixed(2)}</CardValue>
-          <CardSubtitle>This month</CardSubtitle>
-        </SummaryCard>
+        <StatCard>
+          <StatHeader>
+            <IconWrapper color="#00ff9d">
+              <FaArrowUp />
+            </IconWrapper>
+          </StatHeader>
+          <StatValue>${income.toFixed(2)}</StatValue>
+          <StatLabel>Total Income</StatLabel>
+        </StatCard>
 
-        <SummaryCard>
-          <SummaryIcon className="expense">
-            <FaArrowDown />
-          </SummaryIcon>
-          <CardTitle>Total Expenses</CardTitle>
-          <CardValue style={{ color: '#ef4444' }}>${dashboardData.totalExpense.toFixed(2)}</CardValue>
-          <CardSubtitle>This month</CardSubtitle>
-        </SummaryCard>
+        <StatCard>
+          <StatHeader>
+            <IconWrapper color="#ff0055">
+              <FaArrowDown />
+            </IconWrapper>
+          </StatHeader>
+          <StatValue>${expenses.toFixed(2)}</StatValue>
+          <StatLabel>Total Expenses</StatLabel>
+        </StatCard>
 
-        <SummaryCard>
-          <SummaryIcon className="transactions">
-            <FaChartPie />
-          </SummaryIcon>
-          <CardTitle>Transactions</CardTitle>
-          <CardValue>{dashboardData.recentTransactions.length}</CardValue>
-          <CardSubtitle>Recent activity</CardSubtitle>
-        </SummaryCard>
-      </SummarySection>
+        <StatCard>
+          <StatHeader>
+            <IconWrapper color="#7c3aed">
+              <FaChartLine />
+            </IconWrapper>
+          </StatHeader>
+          <StatValue>{transactions.length}</StatValue>
+          <StatLabel>Total Transactions</StatLabel>
+        </StatCard>
+      </StatsGrid>
 
-      <MainContent>
-        {expensesByCategory.length > 0 && (
-          <Card>
-            <PieChartComponent 
-              data={expensesByCategory} 
-              title="Expenses by Category" 
-            />
-          </Card>
-        )}
-
-        {expensesByCategory.length > 0 && (
-          <Card>
-            <BarChartComponent 
-              data={expensesByCategory} 
-              title="Monthly Expenses by Category" 
-            />
-          </Card>
-        )}
-
+      <ChartsGrid>
         <Card>
-          <LineChartComponent 
-            data={monthlyTrends} 
-            title="Income, Expenses & Balance Trend" 
-          />
+          <CardHeader>
+            <h3>Financial Overview</h3>
+          </CardHeader>
+          <CardBody>
+            <Line data={monthlyTrends} options={chartOptions} />
+          </CardBody>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>Recent Transactions</CardTitle>
-            <Link to="/transactions">
-              <FaPlus style={{ color: '#3b82f6' }} />
-            </Link>
+            <h3>Expenses by Category</h3>
           </CardHeader>
-          <div>
-            {dashboardData.recentTransactions.length > 0 ? (
-              dashboardData.recentTransactions.map((transaction: any) => (
-                <div key={transaction.transaction_id} style={{ padding: '0.75rem 0', borderBottom: '1px solid #334155' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span>{transaction.description}</span>
-                    <span style={{ color: transaction.transaction_type === 'income' ? '#10b981' : '#ef4444' }}>
-                      {transaction.transaction_type === 'income' ? '+' : '-'}${parseFloat(transaction.amount).toFixed(2)}
-                    </span>
-                  </div>
-                  <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '0.25rem' }}>
-                    {transaction.transaction_date}
-                  </div>
-                </div>
+          <CardBody>
+            <div style={{ height: '300px', display: 'flex', justifyContent: 'center' }}>
+              <Pie data={pieChartData} options={{
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                  legend: {
+                    position: 'right',
+                    labels: { color: '#ecf0f3' }
+                  }
+                }
+              }} />
+            </div>
+          </CardBody>
+        </Card>
+      </ChartsGrid>
+
+      <Card>
+        <CardHeader>
+          <h3>Recent Transactions</h3>
+        </CardHeader>
+        <CardBody>
+          <TransactionList>
+            {recentTransactions.length > 0 ? (
+              recentTransactions.map((t) => (
+                <TransactionItem key={t.transaction_id}>
+                  <TransactionInfo>
+                    <TransactionIcon type={t.transaction_type}>
+                      {t.transaction_type === 'income' ? <FaArrowUp /> : <FaArrowDown />}
+                    </TransactionIcon>
+                    <TransactionDetails>
+                      <span>{t.description}</span>
+                      <span>{new Date(t.transaction_date).toLocaleDateString()}</span>
+                    </TransactionDetails>
+                  </TransactionInfo>
+                  <TransactionAmount type={t.transaction_type}>
+                    {t.transaction_type === 'income' ? '+' : '-'}${Math.abs(parseFloat(t.amount)).toFixed(2)}
+                  </TransactionAmount>
+                </TransactionItem>
               ))
             ) : (
-              <p style={{ textAlign: 'center', color: '#94a3b8', padding: '1rem' }}>
-                No transactions yet
-              </p>
+              <p style={{ textAlign: 'center', color: '#a0a5a9' }}>No recent transactions</p>
             )}
-          </div>
-        </Card>
-      </MainContent>
+          </TransactionList>
+        </CardBody>
+      </Card>
     </DashboardContainer>
   );
 };
