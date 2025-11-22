@@ -13,7 +13,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Use absolute path for database
 DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{BASE_DIR}/finance_tracker.db")
 
-print(f"📁 Database location: {BASE_DIR}/finance_tracker.db")  # Debug line
+print(f"Database location: {BASE_DIR}/finance_tracker.db")  # Debug line
 
 engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
