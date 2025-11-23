@@ -1,10 +1,10 @@
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL 
-  ? import.meta.env.VITE_API_BASE_URL 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
+  ? import.meta.env.VITE_API_BASE_URL
   : import.meta.env.PROD
-    ? 'https://finance-tracker-backend.onrender.com'  // Will update after deployment
-    : 'http://localhost:8000';
+    ? 'https://finance-tracker-backend.onrender.com'
+    : `http://${window.location.hostname}:8000`;
 // Create an axios instance with base configuration
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -46,7 +46,7 @@ api.interceptors.response.use(
 export const authAPI = {
   login: (credentials: { username: string; password: string }) =>
     api.post('/auth/login', credentials),
-    
+
   register: (userData: {
     username: string;
     email: string;
@@ -54,30 +54,30 @@ export const authAPI = {
     first_name?: string;
     last_name?: string;
   }) => api.post('/auth/register', userData),
-  
+
   getProfile: () => api.get('/users/me'),
 };
 
 // Account API calls
 export const accountAPI = {
   getAccounts: () => api.get('/accounts'),
-  
+
   createAccount: (accountData: {
     account_name: string;
     account_type: string;
     balance: number;
   }) => api.post('/accounts', accountData),
-  
-  updateAccount: (id: number, accountData: any) => 
+
+  updateAccount: (id: number, accountData: any) =>
     api.put(`/accounts/${id}`, accountData),
-    
+
   deleteAccount: (id: number) => api.delete(`/accounts/${id}`),
 };
 
 // Transaction API calls
 export const transactionAPI = {
   getTransactions: () => api.get('/transactions'),
-  
+
   createTransaction: (transactionData: {
     account_id: number;
     category_id: number;
@@ -88,17 +88,17 @@ export const transactionAPI = {
     payment_method?: string;
     notes?: string;
   }) => api.post('/transactions', transactionData),
-  
-  updateTransaction: (id: number, transactionData: any) => 
+
+  updateTransaction: (id: number, transactionData: any) =>
     api.put(`/transactions/${id}`, transactionData),
-    
+
   deleteTransaction: (id: number) => api.delete(`/transactions/${id}`),
 };
 
 // Category API calls
 export const categoryAPI = {
   getCategories: () => api.get('/categories'),
-  
+
   createCategory: (categoryData: {
     category_name: string;
     category_type: string;
@@ -110,21 +110,21 @@ export const categoryAPI = {
 // Budget API calls
 export const budgetAPI = {
   getBudgets: () => api.get('/budgets'),
-  
+
   createBudget: (budgetData: {
     category_id: number;
     budget_amount: number;
     month: number;
     year: number;
   }) => api.post('/budgets', budgetData),
-  
+
   updateBudget: (id: number, budgetData: {
     category_id: number;
     budget_amount: number;
     month: number;
     year: number;
   }) => api.put(`/budgets/${id}`, budgetData),
-  
+
   deleteBudget: (id: number) => api.delete(`/budgets/${id}`),
 };
 
